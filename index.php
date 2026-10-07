@@ -6,6 +6,13 @@ exigirLogin();
 
 $u = usuarioAtual();
 $pdo = db();
+$filtroUsuario = '';
+$paramsUsuario = [];
+
+if ($u['perfil'] === 'OPERADOR') {
+    $filtroUsuario = ' AND usuario_id = ?';
+    $paramsUsuario[] = (int)$u['id'];
+}
 
 // Atualiza automaticamente as negociações que passaram da data combinada
 $pdo->exec("
@@ -15,57 +22,123 @@ $pdo->exec("
       AND data_combinada IS NOT NULL
       AND data_combinada < CURDATE()
 ");
-$total=(int)$pdo->query("
+$stmt = $pdo->prepare("
     SELECT COUNT(*)
     FROM negociacoes
-")->fetchColumn();
+    WHERE 1=1 $filtroUsuario
+");
 
-$pend=(int)$pdo->query("
+$stmt->execute($paramsUsuario);
+
+$total = (int)$stmt->fetchColumn();
+
+$stmt = $pdo->prepare("
     SELECT COUNT(*)
     FROM negociacoes
-    WHERE status='PENDENTE'
-")->fetchColumn();
+    WHERE status = 'PENDENTE'
+    $filtroUsuario
+");
 
-$pagos=(int)$pdo->query("
+$stmt->execute($paramsUsuario);
+
+$pend = (int)$stmt->fetchColumn();
+
+$stmt = $pdo->prepare("
     SELECT COUNT(*)
     FROM negociacoes
-    WHERE status='PAGO'
-")->fetchColumn();
-$vencidos=(int)$pdo->query("
+    WHERE status = 'PAGO'
+    $filtroUsuario
+");
+
+$stmt->execute($paramsUsuario);
+
+$pagos = (int)$stmt->fetchColumn();
+$stmt = $pdo->prepare("
     SELECT COUNT(*)
     FROM negociacoes
-    WHERE status='VENCIDO'
-")->fetchColumn();
+    WHERE status = 'VENCIDO'
+    $filtroUsuario
+");
 
-$totalBruto=$pdo->query("
-    SELECT COALESCE(SUM(valor_original),0)
+$stmt->execute($paramsUsuario);
+
+$vencidos = (int)$stmt->fetchColumn();
+
+$stmt = $pdo->prepare("
+    SELECT COALESCE(SUM(valor_original), 0)
     FROM negociacoes
-")->fetchColumn();
+    WHERE 1=1
+    $filtroUsuario
+");
 
-$totalDescontos=$pdo->query("
-    SELECT COALESCE(SUM(desconto),0)
+$stmt->execute($paramsUsuario);
+
+$totalBruto = $stmt->fetchColumn();
+
+$stmt = $pdo->prepare("
+    SELECT COALESCE(SUM(desconto), 0)
     FROM negociacoes
-")->fetchColumn();
+    WHERE 1=1
+    $filtroUsuario
+");
 
-$totalNegociado=$pdo->query("
-    SELECT COALESCE(SUM(valor_final),0)
+$stmt->execute($paramsUsuario);
+
+$totalDescontos = $stmt->fetchColumn();
+
+$stmt = $pdo->prepare("
+    SELECT COALESCE(SUM(valor_final), 0)
     FROM negociacoes
-")->fetchColumn();
+    WHERE 1=1
+    $filtroUsuario
+");
 
-$totalRecebido=$pdo->query("
-    SELECT COALESCE(SUM(valor_pago),0)
+$stmt->execute($paramsUsuario);
+
+$totalNegociado = $stmt->fetchColumn();
+
+$stmt = $pdo->prepare("
+    SELECT COALESCE(SUM(valor_pago), 0)
     FROM negociacoes
-    WHERE status='PAGO'
-")->fetchColumn();
+    WHERE status = 'PAGO'
+    $filtroUsuario
+");
 
-$totalPendente=$pdo->query("
-    SELECT COALESCE(SUM(valor_final),0)
+$stmt->execute($paramsUsuario);
+
+$totalRecebido = $stmt->fetchColumn();
+
+$stmt = $pdo->prepare("
+    SELECT COALESCE(SUM(valor_final), 0)
     FROM negociacoes
     WHERE status IN ('PENDENTE', 'VENCIDO')
-")->fetchColumn();
+    $filtroUsuario
+");
+
+$stmt->execute($paramsUsuario);
+
+$totalPendente = $stmt->fetchColumn();
 ?>
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sistema de Negociações</title><link rel="stylesheet" href="assets/style.css"></head>
-<body><header class="topbar"><strong>Sistema de Negociações</strong><span><?=e($u['nome'])?> · <?=e($u['perfil'])?> · <a href="logout.php">Sair</a></span></header>
+<body><header class="topbar">
+    <strong>Sistema de Negociações</strong>
+
+    <span>
+        <?=e($u['nome'])?> · <?=e($u['perfil'])?> ·
+
+        <form method="POST" action="logout.php" style="display:inline;">
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?=e(csrfToken())?>"
+            >
+
+            <button type="submit">
+                Sair
+            </button>
+        </form>
+    </span>
+</header>
 <main class="container"><div class="head"><div><h1>Painel</h1><p>Negociações centralizadas em um único sistema.</p></div><a class="button" href="negociacao.php">+ Nova negociação</a></div>
 <section class="cards">
 
@@ -121,6 +194,13 @@ $totalPendente=$pdo->query("
 </section><section class="panel"><h2>Ações rápidas</h2><a class="button secondary" href="clientes.php">Clientes</a> <a class="button secondary" href="negociacao.php">Registrar negociação</a> <?php if(in_array($u['perfil'],['ADMIN','SUPERVISOR'],true)): ?><a class="button secondary" href="relatorio.php">Relatório mensal</a><?php endif;?>  <a href="negociacoes.php" class="button">
         Ver negociações
     </a>
+    <?php if (usuarioAtual()['perfil'] === 'ADMIN'): ?>
+
+    <a href="usuarios.php" class="button">
+        Usuários
+    </a>
+
+<?php endif; ?>
  <?php if ($u['perfil'] === 'ADMIN'): ?>
 
         <a href="auditoria.php" class="button secondary">

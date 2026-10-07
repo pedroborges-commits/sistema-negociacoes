@@ -86,10 +86,21 @@ $negociacoes = $stmt->fetchAll();
 
     <strong>Sistema de Negociações</strong>
 
-    <span>
-        <?= e($u['nome']) ?> ·
-        <a href="logout.php">Sair</a>
-    </span>
+  <span>
+    <?= e($u['nome']) ?> ·
+
+    <form method="POST" action="logout.php" style="display:inline;">
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?= e(csrfToken()) ?>"
+        >
+
+        <button type="submit">
+            Sair
+        </button>
+    </form>
+</span>
 
 </header>
 

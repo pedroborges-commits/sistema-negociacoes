@@ -35,17 +35,28 @@ CREATE TABLE IF NOT EXISTS negociacoes (
  cliente_id INT UNSIGNED NOT NULL,
  usuario_id INT UNSIGNED NOT NULL,
  data_contato DATE NOT NULL,
+
  valor_original DECIMAL(12,2) NOT NULL,
  desconto DECIMAL(12,2) NOT NULL DEFAULT 0,
  valor_final DECIMAL(12,2) NOT NULL,
+
  data_combinada DATE NULL,
- status ENUM('PENDENTE','PAGO','VENCIDO','CANCELADO') NOT NULL DEFAULT 'PENDENTE',
+ data_pagamento DATE NULL,
+ valor_pago DECIMAL(12,2) NULL,
+
+ status ENUM('PENDENTE','PAGO','VENCIDO','CANCELADO')
+     NOT NULL DEFAULT 'PENDENTE',
+
  descricao TEXT NULL,
  observacoes TEXT NULL,
+
  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
- atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+     ON UPDATE CURRENT_TIMESTAMP,
+
  FOREIGN KEY(cliente_id) REFERENCES clientes(id),
  FOREIGN KEY(usuario_id) REFERENCES usuarios(id),
+
  INDEX idx_neg_data(data_contato),
  INDEX idx_neg_status(status)
 ) ENGINE=InnoDB;

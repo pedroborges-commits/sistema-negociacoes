@@ -28,17 +28,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $desc = (float)($_POST['desconto'] ?? 0);
 
     $final = $orig - $desc;
+$combinada = trim($_POST['data_combinada'] ?? '');
 
-    $combinada = $_POST['data_combinada'] ?: null;
+if ($combinada === '') {
+    $combinada = null;
+}
 
     $status = 'PENDENTE';
 
     $descricao = trim($_POST['descricao'] ?? '');
     $obs = trim($_POST['observacoes'] ?? '');
 
-    if (!$cid || $orig < 0 || $desc < 0 || $final < 0) {
+ if (!$cid) {
 
-        $erro = 'Confira cliente, valores e desconto.';
+    $erro = 'Selecione um cliente.';
+
+} elseif ($orig <= 0) {
+
+    $erro = 'O valor original deve ser maior que zero.';
+
+} elseif ($desc < 0) {
+
+    $erro = 'O desconto não pode ser negativo.';
+
+} elseif ($desc > $orig) {
+
+    $erro = 'O desconto não pode ser maior que o valor original.';
+
+} elseif ($final < 0) {
+
+    $erro = 'O valor final não pode ser negativo.';
+
+} elseif (!validarData($data)) {
+    $erro = 'Informe uma data de contato válida.';
+} elseif ($combinada !== null && !validarData($combinada)) {
+    $erro = 'Informe uma data combinada válida.';
+} elseif (
+    $combinada !== null &&
+    $combinada < $data
+) {
+    $erro = 'A data combinada não pode ser anterior à data de contato.';
+} else {
+
+    $clienteStmt = $pdo->prepare("
+        SELECT id
+        FROM clientes
+        WHERE id = ?
+          AND ativo = 1
+        LIMIT 1
+    ");
+
+    $clienteStmt->execute([$cid]);
+
+    if (!$clienteStmt->fetch()) {
+
+        $erro = 'O cliente selecionado não existe ou está inativo.';
 
     } else {
 
@@ -88,7 +132,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'observacoes' => $obs ?: null
         ];
 
-        // Registra a criação da negociação
         registrarAuditoria(
             'CRIAR',
             'negociacoes',
@@ -100,6 +143,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ok = 'Negociação registrada com sucesso.';
     }
 }
+    }
+
 ?>
 
 <!doctype html>
@@ -117,10 +162,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <header class="topbar">
     <strong>Sistema de Negociações</strong>
 
-    <span>
-        <?=e($u['nome'])?> ·
-        <a href="logout.php">Sair</a>
-    </span>
+    
+  <span>
+    <?= e($u['nome']) ?> ·
+
+    <form method="POST" action="logout.php" style="display:inline;">
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?= e(csrfToken()) ?>"
+        >
+
+        <button type="submit">
+            Sair
+        </button>
+    </form>
+</span>
 </header>
 
 <main class="container narrow">
@@ -136,17 +193,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     </div>
 
-    <?php if ($erro): ?>
-        <div class="alert error">
-            <?=e($erro)?>
-        </div>
-    <?php endif; ?>
+   <?php if ($erro): ?>
 
-    <?php if ($ok): ?>
-        <div class="alert success">
-            <?=e($ok)?>
-        </div>
-    <?php endif; ?>
+    <div class="alert error">
+        <?=e($erro)?>
+    </div>
+
+<?php elseif ($ok): ?>
+
+    <div class="alert success">
+        <?=e($ok)?>
+    </div>
+
+<?php endif; ?>
 
     <form class="panel form" method="post">
         <input

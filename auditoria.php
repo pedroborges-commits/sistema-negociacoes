@@ -15,6 +15,13 @@ $u = usuarioAtual();
 
 $dataInicio = $_GET['data_inicio'] ?? '';
 $dataFim = $_GET['data_fim'] ?? '';
+if ($dataInicio !== '' && !validarData($dataInicio)) {
+    $dataInicio = '';
+}
+
+if ($dataFim !== '' && !validarData($dataFim)) {
+    $dataFim = '';
+}
 $usuarioId = (int)($_GET['usuario'] ?? 0);
 $acaoFiltro = $_GET['acao'] ?? '';
 $registroId = (int)($_GET['registro_id'] ?? 0);
@@ -209,10 +216,14 @@ if ($detalheId > 0) {
         ·
         <?=e($u['perfil'])?>
         ·
-
-        <a href="logout.php">
-            Sair
-        </a>
+<form method="POST" action="logout.php" style="display:inline;">
+    <input
+        type="hidden"
+        name="csrf_token"
+        value="<?= e(csrfToken()) ?>"
+    >
+    <button type="submit">Sair</button>
+</form>
 
     </span>
 

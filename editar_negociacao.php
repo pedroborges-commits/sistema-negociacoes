@@ -115,9 +115,11 @@ validarCsrf();
 
         $desconto = (float)($_POST['desconto'] ?? 0);
 
-        $dataCombinada = !empty($_POST['data_combinada'])
-            ? $_POST['data_combinada']
-            : null;
+       $dataCombinada = trim($_POST['data_combinada'] ?? '');
+
+if ($dataCombinada === '') {
+    $dataCombinada = null;
+}
 
         $descricao = trim($_POST['descricao'] ?? '');
 
@@ -129,66 +131,87 @@ validarCsrf();
         |--------------------------------------------------------------------------
         */
 
-        if (!$clienteId) {
+      if (!$clienteId) {
 
-            $erro = 'Selecione um cliente.';
+    $erro = 'Selecione um cliente.';
 
-        } elseif (!$dataContato) {
+} elseif ($valorOriginal <= 0) {
 
-            $erro = 'Informe a data do contato.';
+    $erro = 'O valor original deve ser maior que zero.';
 
-        } elseif ($valorOriginal < 0) {
+} elseif ($desconto < 0) {
 
-            $erro = 'O valor original não pode ser negativo.';
+    $erro = 'O desconto não pode ser negativo.';
 
-        } elseif ($desconto < 0) {
+} elseif ($desconto > $valorOriginal) {
 
-            $erro = 'O desconto não pode ser negativo.';
+    $erro = 'O desconto não pode ser maior que o valor original.';
 
-        } elseif ($desconto > $valorOriginal) {
+} elseif ($valorFinal < 0) {
 
-            $erro = 'O desconto não pode ser maior que o valor original.';
+    $erro = 'O valor final não pode ser negativo.';
 
-        } elseif ($valorFinal < 0) {
+} elseif (!validarData($dataContato)) {
 
-            $erro = 'O valor final não pode ser negativo.';
+    $erro = 'Informe uma data de contato válida.';
 
-        } else {
+} elseif ($dataCombinada !== null && !validarData($dataCombinada)) {
 
-            /*
-            |--------------------------------------------------------------------------
-            | Atualiza a negociação
-            |--------------------------------------------------------------------------
-            */
+    $erro = 'Informe uma data combinada válida.';
 
-            $stmt = $pdo->prepare("
-                UPDATE negociacoes
-                SET
-                    cliente_id = ?,
-                    data_contato = ?,
-                    valor_original = ?,
-                    desconto = ?,
-                    valor_final = ?,
-                    data_combinada = ?,
-                    descricao = ?,
-                    observacoes = ?
-                WHERE id = ?
-            ");
+} else {
 
-            $stmt->execute([
-                $clienteId,
-                $dataContato,
-                $valorOriginal,
-                $desconto,
-                $valorFinal,
-                $dataCombinada,
-                $descricao ?: null,
-                $observacoes ?: null,
-                $id
-            ]);
+    $clienteStmt = $pdo->prepare("
+        SELECT id
+        FROM clientes
+        WHERE id = ?
+          AND ativo = 1
+        LIMIT 1
+    ");
 
-            $ok = 'Negociação atualizada com sucesso.';
-        }
+    $clienteStmt->execute([$clienteId]);
+
+    if (!$clienteStmt->fetch()) {
+
+        $erro = 'O cliente selecionado não existe ou está inativo.';
+
+    } else {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Atualiza a negociação
+        |--------------------------------------------------------------------------
+        */
+
+        $stmt = $pdo->prepare("
+            UPDATE negociacoes
+            SET
+                cliente_id = ?,
+                data_contato = ?,
+                valor_original = ?,
+                desconto = ?,
+                valor_final = ?,
+                data_combinada = ?,
+                descricao = ?,
+                observacoes = ?
+            WHERE id = ?
+        ");
+
+        $stmt->execute([
+            $clienteId,
+            $dataContato,
+            $valorOriginal,
+            $desconto,
+            $valorFinal,
+            $dataCombinada,
+            $descricao ?: null,
+            $observacoes ?: null,
+            $id
+        ]);
+
+        $ok = 'Negociação atualizada com sucesso.';
+    }
+}
     }
 
     /*
@@ -253,13 +276,21 @@ validarCsrf();
 
     <strong>Sistema de Negociações</strong>
 
-    <span>
-        <?=e($u['nome'])?>
-        ·
-        <?=e($u['perfil'])?>
-        ·
-        <a href="logout.php">Sair</a>
-    </span>
+   <span>
+    <?=e(usuarioAtual()['nome'])?> ·
+
+    <form method="POST" action="logout.php" style="display:inline;">
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?=e(csrfToken())?>"
+        >
+
+        <button type="submit">
+            Sair
+        </button>
+    </form>
+</span>
 
 </header>
 
@@ -296,31 +327,24 @@ validarCsrf();
     </div>
 
 
-    <?php if ($erro): ?>
+   <?php if ($erro): ?>
 
-        <div class="panel">
+    <div class="panel">
+        <p>
+            <strong>Erro:</strong>
+            <?=e($erro)?>
+        </p>
+    </div>
 
-            <p>
-                <strong>Erro:</strong>
-                <?=e($erro)?>
-            </p>
+<?php elseif ($ok): ?>
 
-        </div>
+    <div class="panel">
+        <p>
+            <strong><?=e($ok)?></strong>
+        </p>
+    </div>
 
-    <?php endif; ?>
-
-
-    <?php if ($ok): ?>
-
-        <div class="panel">
-
-            <p>
-                <strong><?=e($ok)?></strong>
-            </p>
-
-        </div>
-
-    <?php endif; ?>
+<?php endif; ?>
 
 
     <section class="panel">

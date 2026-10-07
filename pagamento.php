@@ -49,13 +49,21 @@ validarCsrf();
     $dataPagamento = $_POST['data_pagamento'] ?? '';
     $valorPago = (float)($_POST['valor_pago'] ?? 0);
 
-    if (!$dataPagamento) {
+ if (!in_array($negociacao['status'], ['PENDENTE', 'VENCIDO'], true)) {
+    $erro = 'Esta negociação não pode receber pagamento.';
 
-        $erro = 'Informe a data do pagamento.';
+} elseif (!validarData($dataPagamento)) {
 
-    } elseif ($valorPago <= 0) {
+    $erro = 'Informe uma data de pagamento válida.';
+} elseif ($valorPago <= 0) {
 
-        $erro = 'Informe um valor pago válido.';
+    $erro = 'Informe um valor pago válido.';
+
+} elseif (
+    abs($valorPago - (float)$negociacao['valor_final']) > 0.009
+) {
+
+    $erro = 'O valor pago deve ser igual ao valor final da negociação.';
 
     } elseif (
         abs($valorPago - (float)$negociacao['valor_final']) > 0.009
@@ -66,14 +74,14 @@ validarCsrf();
     } else {
 
         $stmt = $pdo->prepare("
-            UPDATE negociacoes
-            SET
-                data_pagamento = ?,
-                valor_pago = ?,
-                status = 'PAGO'
-            WHERE id = ?
-        ");
-
+    UPDATE negociacoes
+    SET
+        data_pagamento = ?,
+        valor_pago = ?,
+        status = 'PAGO'
+    WHERE id = ?
+      AND status <> 'PAGO'
+");
         $stmt->execute([
             $dataPagamento,
             $valorPago,
@@ -129,10 +137,21 @@ validarCsrf();
 <header class="topbar">
     <strong>Sistema de Negociações</strong>
 
-    <span>
-        <?= e($u['nome']) ?> ·
-        <a href="logout.php">Sair</a>
-    </span>
+   <span>
+    <?=e(usuarioAtual()['nome'])?> ·
+
+    <form method="POST" action="logout.php" style="display:inline;">
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?=e(csrfToken())?>"
+        >
+
+        <button type="submit">
+            Sair
+        </button>
+    </form>
+</span>
 </header>
 
 <main class="container narrow">
@@ -154,20 +173,17 @@ validarCsrf();
 
     <?php if ($erro): ?>
 
-        <div class="alert error">
-            <?= e($erro) ?>
-        </div>
+         <div class="alert error">
+        <?= e($erro) ?>
+    </div>
 
-    <?php endif; ?>
+<?php elseif ($ok): ?>
 
+    <div class="alert success">
+        <?= e($ok) ?>
+    </div>
 
-    <?php if ($ok): ?>
-
-        <div class="alert success">
-            <?= e($ok) ?>
-        </div>
-
-    <?php endif; ?>
+<?php endif; ?>
 
 
     <div class="panel">

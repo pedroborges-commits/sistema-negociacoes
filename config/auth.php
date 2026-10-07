@@ -1,6 +1,15 @@
 <?php
 declare(strict_types=1);
-if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
+    ini_set('session.cookie_httponly', '1');
+    ini_set('session.cookie_samesite', 'Lax');
+
+    session_start();
+}
 
 function usuarioAtual(): ?array { return $_SESSION['usuario'] ?? null; }
 
@@ -110,4 +119,67 @@ function validarCsrf(): void
         http_response_code(403);
         exit('Token CSRF inválido.');
     }
+}
+function validarCpf(string $cpf): bool
+{
+    $cpf = preg_replace('/\D/', '', $cpf);
+
+    if (strlen($cpf) !== 11) {
+        return false;
+    }
+
+    // Rejeita CPFs com todos os dígitos iguais
+    if (preg_match('/^(\d)\1{10}$/', $cpf)) {
+        return false;
+    }
+
+    // Primeiro dígito verificador
+    $soma = 0;
+
+    for ($i = 0; $i < 9; $i++) {
+        $soma += (int)$cpf[$i] * (10 - $i);
+    }
+
+    $resto = $soma % 11;
+    $digito1 = $resto < 2 ? 0 : 11 - $resto;
+
+    if ((int)$cpf[9] !== $digito1) {
+        return false;
+    }
+
+    // Segundo dígito verificador
+    $soma = 0;
+
+    for ($i = 0; $i < 10; $i++) {
+        $soma += (int)$cpf[$i] * (11 - $i);
+    }
+
+    $resto = $soma % 11;
+    $digito2 = $resto < 2 ? 0 : 11 - $resto;
+
+    if ((int)$cpf[10] !== $digito2) {
+        return false;
+    }
+
+    return true;
+}
+function validarData(string $data): bool
+{
+    $d = DateTime::createFromFormat('Y-m-d', $data);
+
+    return $d !== false
+        && $d->format('Y-m-d') === $data;
+}
+
+function buscarSenhaUsuario(int $usuarioId): string
+{
+    $stmt = db()->prepare(
+        'SELECT senha FROM usuarios WHERE id = ? AND ativo = 1 LIMIT 1'
+    );
+
+    $stmt->execute([$usuarioId]);
+
+    $senha = $stmt->fetchColumn();
+
+    return is_string($senha) ? $senha : '';
 }

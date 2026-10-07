@@ -194,9 +194,14 @@ foreach ($rows as $row) {
 
         ·
 
-        <a href="logout.php">
-            Sair
-        </a>
+       <form method="POST" action="logout.php" style="display:inline;">
+    <input
+        type="hidden"
+        name="csrf_token"
+        value="<?= e(csrfToken()) ?>"
+    >
+    <button type="submit">Sair</button>
+</form>
 
     </span>
 
