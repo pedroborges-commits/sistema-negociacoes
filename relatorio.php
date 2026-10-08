@@ -21,19 +21,6 @@ if (!preg_match('/^\d{4}-\d{2}$/', $mes)) {
 
 $responsavelId = (int)($_GET['responsavel'] ?? 0);
 
-$statusFiltro = $_GET['status'] ?? '';
-
-$statusPermitidos = [
-    'PENDENTE',
-    'VENCIDO',
-    'PAGO',
-    'CANCELADO'
-];
-
-if ($statusFiltro !== '' && !in_array($statusFiltro, $statusPermitidos, true)) {
-    $statusFiltro = '';
-}
-
 /*
 |--------------------------------------------------------------------------
 | Responsáveis
@@ -41,7 +28,9 @@ if ($statusFiltro !== '' && !in_array($statusFiltro, $statusPermitidos, true)) {
 */
 
 $responsaveis = $pdo->query("
-    SELECT id, nome
+    SELECT
+        id,
+        nome
     FROM usuarios
     WHERE ativo = 1
     ORDER BY nome
@@ -54,27 +43,23 @@ $responsaveis = $pdo->query("
 */
 
 $sql = "
-    SELECT
-        n.id,
-        n.data_contato,
-        n.valor_original,
-        n.desconto,
-        n.valor_final,
-        n.data_combinada,
-        n.data_pagamento,
-        n.valor_pago,
-        n.status,
-        c.nome AS cliente,
-        u.nome AS responsavel
-    FROM negociacoes n
+       SELECT
+    a.id,
+    a.data_atendimento,
+    a.inscricao,
+    a.parcelas_em_atraso,
+    a.valor_negociado,
+    a.valor_recebido,
+    a.data_pagamento,
+    a.observacoes,
+    u.nome AS responsavel
 
-    INNER JOIN clientes c
-        ON c.id = n.cliente_id
+    FROM atendimentos a
 
     INNER JOIN usuarios u
-        ON u.id = n.usuario_id
+        ON u.id = a.usuario_id
 
-    WHERE DATE_FORMAT(n.data_contato, '%Y-%m') = ?
+    WHERE DATE_FORMAT(a.data_atendimento, '%Y-%m') = ?
 ";
 
 $params = [$mes];
@@ -88,7 +73,7 @@ $params = [$mes];
 if ($responsavelId > 0) {
 
     $sql .= "
-        AND n.usuario_id = ?
+        AND a.usuario_id = ?
     ";
 
     $params[] = $responsavelId;
@@ -96,21 +81,14 @@ if ($responsavelId > 0) {
 
 /*
 |--------------------------------------------------------------------------
-| Filtro por status
+| Ordenação
 |--------------------------------------------------------------------------
 */
 
-if ($statusFiltro !== '') {
-
-    $sql .= "
-        AND n.status = ?
-    ";
-
-    $params[] = $statusFiltro;
-}
-
 $sql .= "
-    ORDER BY n.data_contato DESC, n.id DESC
+    ORDER BY
+        a.data_atendimento DESC,
+        a.id DESC
 ";
 
 $stmt = $pdo->prepare($sql);
@@ -126,31 +104,20 @@ $rows = $stmt->fetchAll();
 */
 
 $quantidade = count($rows);
-
-$valorBruto = 0;
-$totalDescontos = 0;
+$totalParcelasAtraso = 0;
 $totalNegociado = 0;
 $totalRecebido = 0;
-$totalPendente = 0;
+$quantidadePagamentos = 0;
 
 foreach ($rows as $row) {
 
-    $valorBruto += (float)$row['valor_original'];
+    $totalParcelasAtraso += (int)$row['parcelas_em_atraso'];
 
-    $totalDescontos += (float)$row['desconto'];
+    $totalNegociado += (float)$row['valor_negociado'];
 
-    $totalNegociado += (float)$row['valor_final'];
-
-    if ($row['status'] === 'PAGO') {
-
-        $totalRecebido += (float)$row['valor_pago'];
-
-    } elseif (
-        $row['status'] === 'PENDENTE' ||
-        $row['status'] === 'VENCIDO'
-    ) {
-
-        $totalPendente += (float)$row['valor_final'];
+    if ($row['valor_recebido'] !== null) {
+        $totalRecebido += (float)$row['valor_recebido'];
+        $quantidadePagamentos++;
     }
 }
 
@@ -194,14 +161,23 @@ foreach ($rows as $row) {
 
         ·
 
-       <form method="POST" action="logout.php" style="display:inline;">
-    <input
-        type="hidden"
-        name="csrf_token"
-        value="<?= e(csrfToken()) ?>"
-    >
-    <button type="submit">Sair</button>
-</form>
+        <form
+            method="POST"
+            action="logout.php"
+            style="display:inline;"
+        >
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= e(csrfToken()) ?>"
+            >
+
+            <button type="submit">
+                Sair
+            </button>
+
+        </form>
 
     </span>
 
@@ -217,7 +193,7 @@ foreach ($rows as $row) {
             <h1>Relatório mensal</h1>
 
             <p>
-                Consolidado das negociações.
+                Consolidado dos atendimentos realizados.
             </p>
 
         </div>
@@ -255,54 +231,24 @@ foreach ($rows as $row) {
 
         <label>
 
-            Responsável
+            Operadora
 
             <select name="responsavel">
 
                 <option value="">
-                    Todos
+                    Todas
                 </option>
 
                 <?php foreach ($responsaveis as $responsavel): ?>
 
                     <option
-                        value="<?= e($responsavel['id']) ?>"
+                        value="<?= e((string)$responsavel['id']) ?>"
                         <?= $responsavelId === (int)$responsavel['id']
                             ? 'selected'
                             : '' ?>
                     >
 
                         <?= e($responsavel['nome']) ?>
-
-                    </option>
-
-                <?php endforeach; ?>
-
-            </select>
-
-        </label>
-
-
-        <label>
-
-            Status
-
-            <select name="status">
-
-                <option value="">
-                    Todos
-                </option>
-
-                <?php foreach ($statusPermitidos as $status): ?>
-
-                    <option
-                        value="<?= e($status) ?>"
-                        <?= $statusFiltro === $status
-                            ? 'selected'
-                            : '' ?>
-                    >
-
-                        <?= e($status) ?>
 
                     </option>
 
@@ -332,81 +278,29 @@ foreach ($rows as $row) {
     <section class="cards">
 
         <div class="card">
+    <span>Atendimentos</span>
+    <b><?= $quantidade ?></b>
+</div>
 
-            <span>
-                Quantidade
-            </span>
+<div class="card">
+    <span>Parcelas em atraso</span>
+    <b><?= $totalParcelasAtraso ?></b>
+</div>
 
-            <b>
-                <?= $quantidade ?>
-            </b>
+<div class="card">
+    <span>Total negociado</span>
+    <b><?= dinheiro($totalNegociado) ?></b>
+</div>
 
-        </div>
+<div class="card">
+    <span>Total recebido</span>
+    <b><?= dinheiro($totalRecebido) ?></b>
+</div>
 
-
-        <div class="card">
-
-            <span>
-                Valor bruto negociado
-            </span>
-
-            <b>
-                <?= dinheiro($valorBruto) ?>
-            </b>
-
-        </div>
-
-
-        <div class="card">
-
-            <span>
-                Descontos aplicados
-            </span>
-
-            <b>
-                <?= dinheiro($totalDescontos) ?>
-            </b>
-
-        </div>
-
-
-        <div class="card">
-
-            <span>
-                Total negociado
-            </span>
-
-            <b>
-                <?= dinheiro($totalNegociado) ?>
-            </b>
-
-        </div>
-
-
-        <div class="card">
-
-            <span>
-                Total recebido
-            </span>
-
-            <b>
-                <?= dinheiro($totalRecebido) ?>
-            </b>
-
-        </div>
-
-
-        <div class="card">
-
-            <span>
-                Total pendente
-            </span>
-
-            <b>
-                <?= dinheiro($totalPendente) ?>
-            </b>
-
-        </div>
+<div class="card">
+    <span>Pagamentos registrados</span>
+    <b><?= $quantidadePagamentos ?></b>
+</div>
 
     </section>
 
@@ -425,45 +319,14 @@ foreach ($rows as $row) {
 
                 <tr>
 
-                    <th>
-                        Data
-                    </th>
-
-                    <th>
-                        Cliente
-                    </th>
-
-                    <th>
-                        Responsável
-                    </th>
-
-                    <th>
-                        Original
-                    </th>
-
-                    <th>
-                        Desconto
-                    </th>
-
-                    <th>
-                        Final
-                    </th>
-
-                    <th>
-                        Data combinada
-                    </th>
-
-                    <th>
-                        Data pagamento
-                    </th>
-
-                    <th>
-                        Valor pago
-                    </th>
-
-                    <th>
-                        Status
-                    </th>
+                   <th>Data</th>
+<th>Inscrição</th>
+<th>Parcelas em atraso</th>
+<th>Valor negociado</th>
+<th>Valor recebido</th>
+<th>Data do pagamento</th>
+<th>Responsável</th>
+<th>Observações</th>
 
                 </tr>
 
@@ -476,51 +339,33 @@ foreach ($rows as $row) {
 
                     <tr>
 
-                        <td>
-                            <?= e($row['data_contato']) ?>
-                        </td>
+                       <td><?= e(date('d/m/Y', strtotime($row['data_atendimento']))) ?></td>
 
-                        <td>
-                            <?= e($row['cliente']) ?>
-                        </td>
+<td><?= e($row['inscricao']) ?></td>
 
-                        <td>
-                            <?= e($row['responsavel']) ?>
-                        </td>
+<td><?= (int)$row['parcelas_em_atraso'] ?></td>
 
-                        <td>
-                            <?= dinheiro($row['valor_original']) ?>
-                        </td>
+<td><?= dinheiro($row['valor_negociado']) ?></td>
 
-                        <td>
-                            <?= dinheiro($row['desconto']) ?>
-                        </td>
+<td>
+    <?php if ($row['valor_recebido'] !== null): ?>
+        <?= dinheiro($row['valor_recebido']) ?>
+    <?php else: ?>
+        -
+    <?php endif; ?>
+</td>
 
-                        <td>
-                            <?= dinheiro($row['valor_final']) ?>
-                        </td>
+<td>
+    <?php if ($row['data_pagamento'] !== null): ?>
+        <?= e(date('d/m/Y', strtotime($row['data_pagamento']))) ?>
+    <?php else: ?>
+        -
+    <?php endif; ?>
+</td>
 
-                        <td>
-                            <?= $row['data_combinada']
-                                ? e($row['data_combinada'])
-                                : '-' ?>
-                        </td>
+<td><?= e($row['responsavel']) ?></td>
 
-                        <td>
-                            <?= $row['data_pagamento']
-                                ? e($row['data_pagamento'])
-                                : '-' ?>
-                        </td>
-
-                        <td>
-                            <?= $row['valor_pago'] !== null
-                                ? dinheiro($row['valor_pago'])
-                                : '-' ?>
-                        </td>
-
-                        <td>
-                            <?= e($row['status']) ?>
-                        </td>
+<td><?= e($row['observacoes'] ?? '') ?></td>
 
                     </tr>
 
@@ -531,8 +376,8 @@ foreach ($rows as $row) {
 
                     <tr>
 
-                        <td colspan="10">
-                            Nenhuma negociação encontrada.
+                        <td colspan="6">
+                            Nenhum atendimento encontrado.
                         </td>
 
                     </tr>

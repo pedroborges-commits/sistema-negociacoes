@@ -1,170 +1,104 @@
 SISTEMA DE NEGOCIAÇÕES
 =======================
 
-Sistema web desenvolvido para centralizar o registro, acompanhamento e
-controle de negociações realizadas pela equipe de atendimento.
-
-O sistema foi desenvolvido para substituir o controle descentralizado
-realizado através de planilhas individuais, permitindo que os colaboradores
-registrem as informações diretamente em um banco de dados centralizado.
+Sistema web para registro, acompanhamento e controle de atendimentos
+realizados com associados, incluindo registro posterior de pagamentos,
+relatórios e auditoria das alterações.
 
 
-1. OBJETIVO
-===========
-
-O sistema tem como objetivo centralizar as negociações realizadas pelos
-colaboradores da equipe de atendimento.
-
-No processo anterior, cada funcionário mantinha sua própria planilha com
-informações como:
-
-- Cliente
-- Data do contato
-- Valor original
-- Desconto
-- Valor final
-- Data combinada para pagamento
-- Status da negociação
-- Observações
-
-Ao final do mês, essas informações precisavam ser consolidadas manualmente
-para geração de um relatório.
-
-Com o sistema, os dados passam a ser registrados diretamente em uma única
-base de dados, permitindo:
-
-- Centralização das informações
-- Acompanhamento das negociações
-- Controle de acesso por usuário
-- Controle de pagamentos
-- Relatórios
-- Dashboard financeiro
-- Histórico de alterações
-- Maior segurança das informações
-
-
-2. TECNOLOGIAS UTILIZADAS
-=========================
+1. TECNOLOGIAS
+==============
 
 Backend:
 - PHP
-
-Banco de dados:
-- MySQL
+- PDO
+- MySQL/MariaDB
 
 Frontend:
-- HTML5
-- CSS3
+- HTML
+- CSS
 - JavaScript
 
-Servidor local:
+Ambiente local:
 - XAMPP
 - Apache
 - MySQL
 
-Controle de versão:
-- Git
-- GitHub
+Banco de dados:
+- negociacoes
 
 
-3. REQUISITOS
+2. REQUISITOS
 =============
 
-Para executar o sistema localmente é necessário possuir:
+Para executar o sistema localmente:
 
 - Windows
-- XAMPP
-- Apache
-- MySQL
-- PHP incluído no XAMPP
+- XAMPP instalado
+- Apache ativo
+- MySQL ativo
 - Navegador web
-- Git (opcional, para versionamento)
 
 
-4. ESTRUTURA DO PROJETO
-=======================
+3. INSTALAÇÃO NO XAMPP
+======================
 
-sistema-negociacoes/
-|
-|-- assets/
-|   `-- style.css
-|
-|-- config/
-|   |-- auth.php
-|   |-- bootstrap.php
-|   `-- database.php
-|
-|-- auditoria.php
-|-- clientes.php
-|-- database.sql
-|-- editar_negociacao.php
-|-- index.php
-|-- login.php
-|-- logout.php
-|-- negociacao.php
-|-- negociacoes.php
-|-- pagamento.php
-|-- relatorio.php
-|-- README-XAMPP.txt
-`-- .gitignore
+O projeto deve estar dentro da pasta htdocs do XAMPP.
 
-
-5. CONFIGURAÇÃO DO XAMPP
-========================
-
-O projeto foi desenvolvido para ser executado utilizando o XAMPP.
-
-A pasta do projeto deve estar localizada dentro do diretório htdocs.
-
-Caminho recomendado:
+Caminho utilizado neste projeto:
 
 C:\xampp\htdocs\sistema-negociacoes
 
 
-6. INICIANDO O XAMPP
-====================
+4. CONFIGURAÇÃO DO BANCO
+========================
 
-Abra o XAMPP Control Panel.
+O banco utilizado pelo sistema possui o nome:
 
-Inicie os seguintes serviços:
+negociacoes
 
-- Apache
-- MySQL
+No XAMPP:
 
-Ambos devem estar em execução antes de acessar o sistema.
+1. Abra o XAMPP Control Panel.
+2. Inicie o Apache.
+3. Inicie o MySQL.
+4. Acesse o phpMyAdmin.
 
-
-7. CONFIGURAÇÃO DO BANCO DE DADOS
-=================================
-
-Abra o phpMyAdmin através do endereço:
+Endereço padrão:
 
 http://localhost/phpmyadmin
 
 
-Crie um banco de dados chamado:
+Para uma instalação nova:
 
-negociacoes
-
-
-Depois importe o arquivo:
+1. Abra o arquivo:
 
 database.sql
 
+2. Execute o script no MySQL/phpMyAdmin.
 
-O arquivo database.sql contém a estrutura necessária para criação do banco
-e os dados iniciais do sistema.
+O script cria:
+
+- Banco negociacoes
+- Tabela perfis
+- Tabela usuarios
+- Tabela clientes
+- Tabela atendimentos
+- Tabela negociacoes
+- Tabela auditoria
+
+Também cria os perfis e usuários iniciais definidos no script.
 
 
-8. CONFIGURAÇÃO DA CONEXÃO COM O BANCO
-======================================
+5. CONFIGURAÇÃO DA CONEXÃO
+==========================
 
-A conexão com o banco de dados está localizada em:
+A conexão com o banco está em:
 
 config/database.php
 
 
-Configuração padrão utilizada no ambiente XAMPP:
+Configuração utilizada atualmente:
 
 Host:
 127.0.0.1
@@ -182,708 +116,504 @@ Senha:
 vazia
 
 
-Caso a instalação local do MySQL utilize outra configuração, os dados
-podem ser alterados no arquivo config/database.php.
+Caso a instalação local utilize configurações diferentes,
+os dados devem ser alterados no arquivo:
+
+config/database.php
 
 
-9. ACESSANDO O SISTEMA
-======================
+6. ACESSO AO SISTEMA
+====================
 
-Depois de iniciar o Apache e o MySQL, acesse:
+Com Apache e MySQL ativos, acesse:
 
 http://localhost/sistema-negociacoes/login.php
 
 
-10. USUÁRIOS INICIAIS
-=====================
-
-O banco possui usuários iniciais para teste.
-
-ADMIN
-E-mail:
-admin@local.test
-
-Senha:
-password
-
-
-SUPERVISOR
-E-mail:
-supervisor@local.test
-
-Senha:
-password
-
-
-OPERADOR
-E-mail:
-operador@local.test
-
-Senha:
-password
-
-
-As credenciais acima são destinadas ao ambiente local de desenvolvimento
-e testes.
-
-
-11. PERFIS DE ACESSO
+7. PERFIS DE USUÁRIO
 ====================
 
-O sistema possui três perfis de usuário:
+O sistema possui três perfis:
 
-- ADMIN
-- SUPERVISOR
-- OPERADOR
-
-
-11.1 OPERADOR
--------------
-
-O operador pode:
-
-- Acessar o sistema
-- Criar negociações
-- Visualizar suas próprias negociações
-- Editar suas próprias negociações
-- Registrar pagamentos de suas próprias negociações
-- Consultar informações relacionadas às suas negociações
-
-O operador não pode:
-
-- Visualizar negociações de outros operadores
-- Editar negociações de outros operadores
-- Registrar pagamentos de negociações de outros operadores
-- Acessar o relatório administrativo
-- Acessar a auditoria
+ADMIN
+SUPERVISOR
+OPERADOR
 
 
-11.2 SUPERVISOR
----------------
+ADMIN
+-----
 
-O supervisor pode:
-
-- Acessar o sistema
-- Criar negociações
-- Visualizar todas as negociações
-- Editar negociações
-- Registrar pagamentos
-- Consultar o relatório mensal
-- Filtrar informações do relatório
-
-O supervisor não possui acesso à auditoria administrativa.
-
-
-11.3 ADMIN
-----------
-
-O administrador possui acesso completo ao sistema.
+Possui acesso administrativo ao sistema.
 
 Pode:
 
-- Acessar todas as negociações
-- Criar negociações
-- Editar negociações
-- Registrar pagamentos
-- Consultar relatórios
-- Consultar auditoria
-- Visualizar o histórico das alterações realizadas
+- Acessar o dashboard.
+- Visualizar todos os atendimentos.
+- Criar atendimentos.
+- Editar atendimentos.
+- Registrar pagamentos.
+- Editar observações de atendimentos pagos.
+- Acessar relatórios.
+- Filtrar relatórios.
+- Acessar auditoria.
+- Gerenciar usuários.
+- Criar usuários.
+- Editar usuários.
+- Ativar e desativar usuários.
+- Redefinir senha de usuários.
 
 
-12. FUNCIONALIDADES
+SUPERVISOR
+----------
+
+Possui acesso operacional e gerencial.
+
+Pode:
+
+- Acessar o dashboard.
+- Visualizar atendimentos de todos os operadores.
+- Criar atendimentos.
+- Editar atendimentos.
+- Registrar pagamentos.
+- Editar observações de atendimentos pagos.
+- Acessar relatórios.
+- Filtrar relatórios.
+- Acessar auditoria.
+
+
+OPERADOR
+--------
+
+Possui acesso aos próprios atendimentos.
+
+Pode:
+
+- Acessar o dashboard.
+- Criar atendimentos.
+- Visualizar os próprios atendimentos.
+- Editar os próprios atendimentos enquanto não estiverem pagos.
+- Registrar pagamento dos próprios atendimentos.
+- Editar somente a observação dos próprios atendimentos após o pagamento.
+
+O operador não pode:
+
+- Visualizar atendimentos de outros operadores.
+- Editar atendimentos de outros operadores.
+- Registrar pagamento de atendimentos de outros operadores.
+- Acessar relatórios administrativos.
+- Acessar auditoria administrativa.
+
+
+8. FLUXO DE ATENDIMENTO
+=======================
+
+O sistema atualmente trabalha com o conceito de ATENDIMENTO.
+
+Cada ligação ou contato realizado com um associado gera um novo atendimento.
+
+Um atendimento possui:
+
+- Data do atendimento
+- Inscrição
+- Parcelas em atraso
+- Valor negociado
+- Valor recebido
+- Data do pagamento
+- Observações
+- Operador responsável
+
+
+9. INSCRIÇÃO
+===========
+
+A inscrição é informada manualmente pelo operador.
+
+Atualmente não existe uma tabela específica de inscrições.
+
+A mesma inscrição pode aparecer várias vezes no sistema.
+
+Isso é esperado.
+
+Exemplo:
+
+Dia 01:
+- Associado foi contatado.
+- Não realizou pagamento.
+
+Dia 10:
+- Associado foi contatado novamente.
+- Novo atendimento é registrado.
+
+Os dois registros podem possuir a mesma inscrição.
+
+
+10. PARCELAS EM ATRASO
+======================
+
+A quantidade de parcelas em atraso é informada manualmente.
+
+O sistema exige no mínimo:
+
+1 parcela em atraso.
+
+
+11. VALOR NEGOCIADO
 ===================
 
+O valor negociado representa o valor acordado durante o atendimento.
 
-12.1 LOGIN E AUTENTICAÇÃO
--------------------------
-
-O sistema possui autenticação através de e-mail e senha.
-
-As senhas não são armazenadas diretamente no banco.
-
-É utilizado:
-
-password_hash()
-
-para armazenamento seguro das senhas.
-
-Durante o login é utilizado:
-
-password_verify()
-
-para validar a senha informada pelo usuário.
+O valor deve ser maior que zero.
 
 
-12.2 CONTROLE DE SESSÃO
------------------------
+12. PAGAMENTO
+============
 
-Após o login, o sistema cria uma sessão para identificar o usuário.
+O pagamento é registrado separadamente do atendimento.
 
-O ID da sessão é regenerado após uma autenticação bem-sucedida.
+Um atendimento pode possuir:
 
-O sistema também possui uma função de logout para encerramento da sessão.
+- Nenhum pagamento
+- Um pagamento
 
-
-12.3 CLIENTES
-------------
-
-O sistema permite cadastrar clientes.
-
-Informações disponíveis:
-
-- Nome
-- Documento
-- Telefone
-- E-mail
-- Status ativo/inativo
+O sistema não permite registrar dois pagamentos para o mesmo atendimento.
 
 
-12.4 NEGOCIAÇÕES
-----------------
+Campos do pagamento:
 
-É possível registrar uma nova negociação associada a um cliente e ao
-usuário responsável.
+- Valor recebido
+- Data do pagamento
 
-Informações registradas:
 
-- Cliente
-- Usuário responsável
-- Data do contato
-- Valor original
-- Desconto
-- Valor final
-- Data combinada
-- Status
-- Descrição
+IMPORTANTE:
+
+O valor recebido pode ser maior que o valor negociado.
+
+Isso pode acontecer devido a situações como:
+
+- Juros
+- Acréscimos
+- Parcelas adicionais
+- Outros valores pagos pelo associado
+
+O sistema não bloqueia essa situação.
+
+
+13. REGRAS APÓS O PAGAMENTO
+===========================
+
+Depois que um atendimento recebe um pagamento, os dados principais
+do atendimento ficam bloqueados.
+
+Não é mais possível alterar:
+
+- Data do atendimento
+- Inscrição
+- Parcelas em atraso
+- Valor negociado
+
+Somente o campo:
+
 - Observações
 
+continua disponível para edição.
 
-12.5 CÁLCULO DO VALOR FINAL
----------------------------
 
-O valor final da negociação é calculado automaticamente através da fórmula:
+Exemplo:
 
-Valor final = Valor original - Desconto
+Atendimento não pago:
 
+- Data: editável
+- Inscrição: editável
+- Parcelas: editável
+- Valor negociado: editável
+- Observações: editável
 
-O sistema também possui validações para impedir:
 
-- Valor original negativo
-- Desconto negativo
-- Desconto maior que o valor original
-- Valor final negativo
+Atendimento pago:
 
+- Data: bloqueada
+- Inscrição: bloqueada
+- Parcelas: bloqueadas
+- Valor negociado: bloqueado
+- Valor recebido: bloqueado
+- Data do pagamento: bloqueada
+- Observações: editável
 
-12.6 STATUS DAS NEGOCIAÇÕES
----------------------------
 
-As negociações podem possuir os seguintes status:
+14. AUDITORIA
+=============
 
-PENDENTE
-VENCIDO
-PAGO
-CANCELADO
+As alterações importantes realizadas no sistema são registradas
+na tabela:
 
+auditoria
 
-PENDENTE:
-A negociação foi registrada, mas o pagamento ainda não foi realizado.
 
+A auditoria registra informações como:
 
-VENCIDO:
-A data combinada para pagamento passou e a negociação ainda está pendente.
-
-
-PAGO:
-O pagamento foi registrado corretamente.
-
-
-CANCELADO:
-Status disponível para negociações que forem canceladas.
-
-
-12.7 ATUALIZAÇÃO AUTOMÁTICA DE NEGOCIAÇÕES VENCIDAS
-----------------------------------------------------
-
-O dashboard verifica automaticamente as negociações pendentes cuja data
-combinada já passou.
-
-Quando a data combinada é anterior à data atual, a negociação pode ser
-atualizada automaticamente para:
-
-VENCIDO
-
-
-12.8 EDIÇÃO DE NEGOCIAÇÕES
---------------------------
-
-Negociações que ainda não foram pagas podem ter seus principais dados
-alterados.
-
-Podem ser alterados:
-
-- Cliente
-- Data do contato
-- Valor original
-- Desconto
-- Data combinada
-- Descrição
-- Observações
-
-
-Depois que uma negociação é marcada como PAGO, os dados financeiros e
-principais informações da negociação não podem mais ser alterados.
-
-Para negociações pagas, somente a observação pode ser alterada.
-
-
-12.9 PAGAMENTOS
----------------
-
-O sistema possui uma funcionalidade específica para registrar pagamentos.
-
-São registrados:
-
-- Data do pagamento
-- Valor pago
-
-O sistema valida se o valor pago é exatamente igual ao valor final da
-negociação.
-
-Caso o valor esteja correto, a negociação passa para:
-
-PAGO
-
-
-O pagamento também gera um registro na auditoria.
-
-
-12.10 DASHBOARD
----------------
-
-O dashboard apresenta informações resumidas das negociações.
-
-Indicadores disponíveis:
-
-- Total de negociações
-- Total de negociações pendentes
-- Total de negociações vencidas
-- Total de negociações pagas
-- Valor bruto negociado
-- Total de descontos aplicados
-- Total negociado
-- Total recebido
-- Total pendente
-
-
-O total pendente considera negociações que ainda estão:
-
-- PENDENTE
-- VENCIDO
-
-
-12.11 ACESSO RÁPIDO
--------------------
-
-O dashboard possui atalhos para:
-
-- Ver negociações
-- Nova negociação
-
-Usuários ADMIN também possuem acesso rápido à:
-
-- Auditoria
-
-
-12.12 LISTAGEM DE NEGOCIAÇÕES
------------------------------
-
-A página de negociações apresenta as negociações registradas no sistema.
-
-O conteúdo exibido respeita as permissões do usuário.
-
-OPERADORES visualizam somente suas próprias negociações.
-
-SUPERVISORES e ADMINS podem visualizar todas as negociações.
-
-
-12.13 RELATÓRIO MENSAL
-----------------------
-
-O sistema possui um relatório administrativo para acompanhamento das
-negociações.
-
-O acesso é permitido para:
-
-- ADMIN
-- SUPERVISOR
-
-
-O relatório possui filtros por:
-
-- Mês
-- Responsável
-- Status
-
-
-O relatório apresenta informações como:
-
-- Data
-- Cliente
-- Responsável
-- Valor original
-- Desconto
-- Valor final
-- Data combinada
-- Data do pagamento
-- Valor pago
-- Status
-
-
-Também são apresentados totais financeiros:
-
-- Quantidade de negociações
-- Valor bruto
-- Total de descontos
-- Total negociado
-- Total recebido
-- Total pendente
-
-
-12.14 AUDITORIA
----------------
-
-O sistema possui um módulo de auditoria destinado ao acompanhamento das
-alterações realizadas.
-
-O acesso é restrito ao ADMIN.
-
-
-A auditoria registra ações como:
-
-- CRIAR
-- EDITAR
-- PAGAR
-
-
-Para cada ação são registrados:
-
-- Usuário responsável
+- Usuário responsável pela ação
 - Ação realizada
 - Tabela afetada
 - ID do registro
 - Dados anteriores
 - Dados novos
-- Data e hora
+- Data e hora da ação
 
 
-A auditoria permite filtrar os registros por:
+Principais ações registradas:
 
-- Data inicial
-- Data final
-- Usuário
-- Ação
-- ID do registro/negociação
-
-
-Também é possível visualizar os detalhes dos dados anteriores e novos
-armazenados em formato JSON.
+CRIAR
+EDITAR
+EDITAR_OBSERVACAO
+PAGAMENTO
 
 
-13. SEGURANÇA
+A auditoria permite acompanhar alterações realizadas nos registros.
+
+
+15. DASHBOARD
 =============
 
-O projeto possui mecanismos de segurança para proteger as operações
-realizadas pelos usuários.
+O dashboard apresenta informações de acordo com o perfil do usuário.
 
 
-13.1 SENHAS
------------
+Indicadores atuais:
 
-As senhas são armazenadas utilizando:
-
-password_hash()
-
-
-A validação durante o login utiliza:
-
-password_verify()
+- Total de atendimentos
+- Atendimentos hoje
+- Valor total negociado
+- Total recebido
+- Valor recebido hoje
 
 
-As senhas não são armazenadas em texto puro.
+Para OPERADOR:
+
+Os valores consideram somente os próprios atendimentos.
 
 
-13.2 PDO E PREPARED STATEMENTS
-------------------------------
+Para SUPERVISOR e ADMIN:
 
-O sistema utiliza PDO para comunicação com o MySQL.
-
-As operações que recebem dados externos utilizam prepared statements,
-reduzindo o risco de SQL Injection.
+Os valores consideram todos os atendimentos.
 
 
-13.3 CONTROLE DE PERMISSÕES
----------------------------
+16. LISTAGEM DE ATENDIMENTOS
+============================
 
-As permissões são verificadas no backend.
+A página:
 
-Não é considerado seguro apenas esconder botões na interface.
+atendimentos.php
 
-O sistema verifica o perfil e o usuário antes de permitir determinadas
-operações.
-
-
-13.4 CONTROLE DE ACESSO ÀS NEGOCIAÇÕES
---------------------------------------
-
-Operadores só podem acessar negociações pertencentes a eles.
-
-Supervisores e administradores podem acessar todas as negociações.
+apresenta os atendimentos registrados.
 
 
-Essa verificação é realizada no backend através da função:
+Informações exibidas:
 
-podeAcessarNegociacao()
-
-
-13.5 PROTEÇÃO CSRF
-------------------
-
-As principais operações que alteram dados possuem proteção contra CSRF.
-
-Atualmente protegidas:
-
-- Criação de negociação
-- Edição de negociação
-- Registro de pagamento
+- Data
+- Inscrição
+- Parcelas em atraso
+- Valor negociado
+- Valor recebido
+- Data do pagamento
+- Operadora
+- Ação
 
 
-O sistema gera um token associado à sessão e valida o token recebido no
-POST.
+Quando o atendimento não possui pagamento:
 
-Caso o token esteja ausente ou inválido, a requisição é bloqueada com:
+Valor recebido:
+Não pago
 
-Token CSRF inválido.
-
-
-Os testes realizados confirmaram:
-
-- Criação normal funciona
-- Criação sem token é bloqueada
-- Edição normal funciona
-- Edição sem token é bloqueada
-- Pagamento normal funciona
-- Pagamento sem token é bloqueado
+Data do pagamento:
+—
 
 
-13.6 AUDITORIA
---------------
+Quando o atendimento possui pagamento:
 
-Alterações importantes realizadas no sistema são registradas na tabela
-de auditoria.
+Valor recebido:
+Valor registrado
 
-Isso permite acompanhar quem realizou determinada ação e quais dados
-foram alterados.
-
-
-14. BANCO DE DADOS
-==================
-
-O banco de dados utilizado pelo sistema é:
-
-negociacoes
+Data do pagamento:
+Data registrada
 
 
-Principais tabelas:
+17. RELATÓRIOS
+=============
 
+A página:
 
-perfis
-------
+relatorio.php
 
-Armazena os perfis de acesso do sistema.
-
-Perfis utilizados:
+é acessível para:
 
 - ADMIN
 - SUPERVISOR
-- OPERADOR
 
 
-usuarios
---------
+O relatório permite filtrar os atendimentos por:
 
-Armazena os usuários do sistema.
-
-Principais informações:
-
-- ID
-- Nome
-- E-mail
-- Senha
-- Perfil
-- Status ativo
-- Data de criação
-- Data de atualização
+- Mês
+- Responsável/operadora
 
 
-clientes
---------
+O relatório apresenta:
 
-Armazena os clientes cadastrados.
-
-Principais informações:
-
-- ID
-- Nome
-- Documento
-- Telefone
-- E-mail
-- Status ativo
-- Data de criação
-- Data de atualização
+- Quantidade de atendimentos
+- Total de parcelas em atraso
+- Total negociado
+- Total recebido
+- Quantidade de pagamentos registrados
 
 
-negociacoes
------------
-
-Armazena as negociações realizadas.
-
-Principais informações:
-
-- ID
-- Cliente
-- Usuário responsável
-- Data do contato
-- Valor original
-- Desconto
-- Valor final
-- Data combinada
-- Data do pagamento
-- Valor pago
-- Status
-- Descrição
-- Observações
-- Data de criação
-- Data de atualização
+Também apresenta informações individuais dos atendimentos,
+incluindo os dados de pagamento.
 
 
-auditoria
----------
+18. SEGURANÇA
+============
 
-Armazena o histórico das principais alterações realizadas no sistema.
-
-Campos principais:
-
-- ID
-- Usuário
-- Ação
-- Tabela afetada
-- ID do registro
-- Dados anteriores
-- Dados novos
-- Data e hora
+O sistema utiliza algumas medidas básicas de segurança.
 
 
-15. RELACIONAMENTOS DO BANCO
-============================
+Autenticação:
 
-O banco utiliza relacionamentos entre as tabelas.
-
-Um perfil pode estar associado a vários usuários.
-
-Um usuário pode possuir várias negociações.
-
-Um cliente pode possuir várias negociações.
-
-Uma negociação pertence a um cliente e a um usuário responsável.
-
-A tabela de auditoria pode estar relacionada ao usuário que realizou a
-ação registrada.
+O usuário precisa estar autenticado para acessar as páginas
+protegidas.
 
 
-16. FLUXO PRINCIPAL DO SISTEMA
-==============================
+Controle de acesso:
 
-O fluxo principal pode ser representado da seguinte forma:
-
-
-USUÁRIO
-   |
-   v
-LOGIN
-   |
-   v
-VALIDAÇÃO DE CREDENCIAIS
-   |
-   v
-CRIAÇÃO DA SESSÃO
-   |
-   v
-DASHBOARD
-   |
-   +----------------------+
-   |                      |
-   v                      v
-CLIENTES              NEGOCIAÇÕES
-                          |
-                          v
-                     NOVA NEGOCIAÇÃO
-                          |
-                          v
-                       MYSQL
-                          |
-                          v
-                     NEGOCIAÇÃO
-                          |
-             +------------+------------+
-             |                         |
-             v                         v
-         EDITAR                    PAGAMENTO
-             |                         |
-             v                         v
-           MYSQL                    PAGO
-             |                         |
-             +------------+------------+
-                          |
-                          v
-                      AUDITORIA
+As permissões são verificadas de acordo com o perfil do usuário.
 
 
-17. ARQUITETURA BÁSICA
-======================
+Controle de propriedade:
 
-O sistema segue uma arquitetura simples baseada em:
-
-Frontend
-   |
-   v
-PHP
-   |
-   v
-PDO
-   |
-   v
-MySQL
+OPERADORES só podem acessar seus próprios atendimentos.
 
 
-O navegador envia uma requisição para uma página PHP.
+Senhas:
 
-O PHP:
+As senhas são armazenadas utilizando password_hash().
 
-- valida o usuário
-- valida permissões
-- valida os dados
-- executa operações no banco
-- retorna o resultado para o navegador
+A verificação utiliza password_verify().
 
 
-18. ARQUIVOS PRINCIPAIS
+CSRF:
+
+Formulários que realizam operações importantes utilizam tokens CSRF.
+
+
+SQL:
+
+As operações com dados fornecidos pelo usuário utilizam
+prepared statements através do PDO.
+
+
+Sessão:
+
+A sessão utiliza:
+
+- session.use_strict_mode
+- session.use_only_cookies
+- HttpOnly
+- SameSite=Lax
+
+
+19. ESTRUTURA PRINCIPAL DO PROJETO
+==================================
+
+sistema-negociacoes/
+│
+├── assets/
+│   └── style.css
+│
+├── config/
+│   ├── database.php
+│   ├── auth.php
+│   └── bootstrap.php
+│
+├── index.php
+│
+├── login.php
+├── logout.php
+│
+├── novo_atendimento.php
+├── atendimentos.php
+├── editar_atendimento.php
+├── pagamento_atendimento.php
+│
+├── relatorio.php
+├── auditoria.php
+│
+├── usuarios.php
+├── novo_usuario.php
+├── editar_usuario.php
+├── redefinir_senha_usuario.php
+├── alternar_status_usuario.php
+├── minha_conta.php
+│
+├── clientes.php
+│
+├── negociacao.php
+├── negociacoes.php
+├── editar_negociacao.php
+├── pagamento.php
+│
+├── database.sql
+└── README-XAMPP.txt
+
+
+20. ARQUIVOS PRINCIPAIS
 =======================
 
+index.php
+----------
 
-config/database.php
--------------------
+Dashboard principal do sistema.
 
-Responsável pela conexão com o banco de dados através do PDO.
+
+login.php
+---------
+
+Tela de autenticação.
+
+
+novo_atendimento.php
+--------------------
+
+Cadastro de um novo atendimento.
+
+
+atendimentos.php
+----------------
+
+Lista dos atendimentos cadastrados.
+
+
+editar_atendimento.php
+----------------------
+
+Edição dos dados de um atendimento.
+
+Quando o atendimento já possui pagamento,
+somente a observação pode ser alterada.
+
+
+pagamento_atendimento.php
+-------------------------
+
+Registro do pagamento de um atendimento.
+
+
+relatorio.php
+-------------
+
+Relatórios mensais com filtros.
+
+
+auditoria.php
+-------------
+
+Consulta das ações registradas no sistema.
 
 
 config/auth.php
@@ -894,416 +624,236 @@ Responsável por:
 - Sessão
 - Login
 - Logout
-- Verificação de autenticação
-- Verificação de perfis
-- Controle de acesso às negociações
+- Controle de acesso
+- CSRF
 - Auditoria
-- Token CSRF
+- Validações
+
+
+config/database.php
+-------------------
+
+Responsável pela conexão com o banco de dados.
 
 
 config/bootstrap.php
 --------------------
 
-Arquivo utilizado para carregar as configurações e funções necessárias
-ao funcionamento das páginas.
+Carrega as configurações principais do sistema e funções auxiliares.
 
 
-login.php
----------
+21. BANCO DE DADOS
+==================
 
-Tela de login do sistema.
-
-
-logout.php
-----------
-
-Responsável pelo encerramento da sessão.
+As principais tabelas utilizadas atualmente são:
 
 
-index.php
----------
+usuarios
+--------
 
-Dashboard principal.
+Armazena os usuários do sistema.
 
 
-clientes.php
+perfis
+------
+
+Armazena os perfis:
+
+- ADMIN
+- SUPERVISOR
+- OPERADOR
+
+
+atendimentos
 ------------
 
-Cadastro e gerenciamento de clientes.
+Tabela principal do fluxo atual.
+
+Armazena os registros de atendimento,
+incluindo informações de pagamento.
 
 
-negociacao.php
---------------
+auditoria
+---------
 
-Cadastro de novas negociações.
-
-
-negociacoes.php
----------------
-
-Listagem das negociações.
+Armazena o histórico das ações realizadas no sistema.
 
 
-editar_negociacao.php
----------------------
+clientes
+--------
 
-Edição das negociações.
-
-
-pagamento.php
--------------
-
-Registro de pagamentos.
+Tabela mantida no projeto para compatibilidade com funcionalidades
+anteriores.
 
 
-relatorio.php
--------------
+negociacoes
+-----------
 
-Relatório mensal das negociações.
+Tabela do fluxo antigo de negociações.
 
-
-auditoria.php
--------------
-
-Consulta do histórico de auditoria.
+Ela ainda existe no banco por compatibilidade com a versão anterior
+do sistema, mas não faz parte do fluxo atual de atendimentos.
 
 
-database.sql
-------------
+22. FUNCIONALIDADES LEGADAS
+===========================
 
-Script para criação e inicialização do banco de dados.
+O projeto passou por uma mudança de conceito.
+
+A versão anterior trabalhava principalmente com:
+
+- Clientes
+- Negociações
+- Descontos
+- Status de negociação
+- Pagamentos vinculados à negociação
 
 
-assets/style.css
-----------------
+O fluxo atual trabalha com:
 
-Arquivo de estilos do sistema.
+- Atendimentos
+- Inscrição
+- Parcelas em atraso
+- Valor negociado
+- Pagamento separado
+- Auditoria
 
 
-19. INSTALAÇÃO PASSO A PASSO
-============================
+Por isso, alguns arquivos e tabelas antigas ainda permanecem
+temporariamente no projeto.
 
-1. Instale o XAMPP.
 
-2. Inicie o Apache e o MySQL.
+Arquivos legados:
 
-3. Copie a pasta do projeto para:
+- negociacao.php
+- negociacoes.php
+- editar_negociacao.php
+- pagamento.php
+- clientes.php
 
-C:\xampp\htdocs\sistema-negociacoes
 
-4. Abra:
+Tabela legada:
 
-http://localhost/phpmyadmin
+- negociacoes
 
-5. Crie o banco:
+
+Esses recursos não devem ser utilizados para o fluxo atual
+de atendimento.
+
+
+23. FLUXO ATUAL DO SISTEMA
+==========================
+
+O fluxo principal é:
+
+
+LOGIN
+  |
+  v
+DASHBOARD
+  |
+  +----------------------+
+  |                      |
+  v                      v
+NOVO ATENDIMENTO     ATENDIMENTOS
+                         |
+                         v
+                    EDITAR
+                         |
+                         v
+                  REGISTRAR PAGAMENTO
+                         |
+                         v
+                  ATENDIMENTO PAGO
+                         |
+              +----------+----------+
+              |                     |
+              v                     v
+        DADOS BLOQUEADOS       OBSERVAÇÃO
+                              EDITÁVEL
+              |
+              v
+          AUDITORIA
+              |
+              v
+          RELATÓRIO
+
+
+24. MANUTENÇÃO
+==============
+
+Antes de alterar qualquer arquivo:
+
+1. Faça uma cópia do projeto.
+2. Faça backup do banco de dados.
+3. Faça as alterações.
+4. Teste o fluxo afetado.
+5. Verifique a auditoria quando aplicável.
+
+
+25. BACKUP DO BANCO
+===================
+
+Recomenda-se realizar backups periódicos do banco:
 
 negociacoes
 
-6. Importe:
 
-database.sql
+O backup pode ser realizado pelo phpMyAdmin através da opção:
 
-7. Confira a configuração em:
+Exportar
 
-config/database.php
 
-8. Acesse:
+26. ACESSO RÁPIDO
+=================
+
+Sistema:
 
 http://localhost/sistema-negociacoes/login.php
 
-9. Utilize um dos usuários de teste.
+
+phpMyAdmin:
+
+http://localhost/phpmyadmin
 
 
-20. DESENVOLVIMENTO LOCAL
-=========================
-
-O projeto atualmente foi preparado para funcionar em ambiente local
-utilizando XAMPP.
-
-Não é necessário configurar Docker para executar a versão atual.
-
-O projeto utiliza:
-
-Apache
-+
-PHP
-+
-MySQL
-
-
-21. GIT E GITHUB
-================
-
-O projeto utiliza Git para controle de versão.
-
-O repositório local é inicializado dentro da pasta:
+Pasta do projeto:
 
 C:\xampp\htdocs\sistema-negociacoes
 
 
-Comandos básicos:
-
-Verificar estado:
-
-git status
-
-
-Adicionar arquivos:
-
-git add .
-
-
-Criar commit:
-
-git commit -m "descrição da alteração"
-
-
-Enviar para o GitHub:
-
-git push
-
-
-22. .GITIGNORE
-==============
-
-O projeto possui um arquivo .gitignore para evitar o versionamento de
-arquivos desnecessários ou potencialmente sensíveis.
-
-Entre os itens ignorados estão:
-
-- .env
-- arquivos temporários
-- logs
-- configurações de IDE
-- arquivos específicos do sistema operacional
-
-
-23. TESTES REALIZADOS
-=====================
-
-Durante o desenvolvimento foram realizados testes das principais
-funcionalidades.
-
-
-Autenticação:
-- Login de ADMIN testado
-- Login de SUPERVISOR testado
-- Login de OPERADOR testado
-
-
-Clientes:
-- Cadastro de cliente testado
-
-
-Negociações:
-- Criação de negociação testada
-- Cálculo de desconto testado
-- Valor final testado
-- Edição testada
-- Controle de status testado
-
-
-Pagamentos:
-- Registro de pagamento testado
-- Validação do valor pago testada
-- Alteração para status PAGO testada
-
-
-Dashboard:
-- Totais financeiros testados
-- Negociações pendentes testadas
-- Negociações vencidas testadas
-- Negociações pagas testadas
-
-
-Relatório:
-- Filtro por mês testado
-- Filtro por responsável testado
-- Filtro por status testado
-
-
-Permissões:
-- Restrição de negociações entre operadores testada
-- Acesso de supervisor testado
-- Acesso administrativo testado
-- Restrição da auditoria testada
-
-
-Auditoria:
-- CRIAR testado
-- EDITAR testado
-- PAGAR testado
-- Filtros testados
-- Visualização dos dados anteriores e novos testada
-
-
-CSRF:
-- Criação com token testada
-- Criação sem token bloqueada
-- Edição com token testada
-- Edição sem token bloqueada
-- Pagamento com token testado
-- Pagamento sem token bloqueado
-
-
-24. LIMITAÇÕES ATUAIS
-=====================
-
-O sistema ainda está em desenvolvimento.
-
-Algumas funcionalidades poderão ser aprimoradas posteriormente, como:
-
-- Gerenciamento completo de usuários pelo ADMIN
-- Melhorias no gerenciamento de clientes
-- Controle mais avançado de parcelas
-- Melhorias nos relatórios
-- Exportação de relatórios
-- Melhorias na interface
-- Melhorias de responsividade
-- Melhorias adicionais de segurança
-- Configuração de ambiente para produção
-- Separação de configurações sensíveis através de variáveis de ambiente
-- Melhorias no gerenciamento de sessões
-- Novos indicadores e gráficos
-
-
-25. PRÓXIMAS ETAPAS
-===================
-
-As próximas etapas planejadas incluem:
-
-
-SEGURANÇA
----------
-
-- Revisão completa das permissões
-- Validações adicionais
-- Melhorias na segurança da sessão
-- Revisão de operações acessíveis diretamente por URL
-- Melhorias na proteção das operações
-
-
-GERENCIAMENTO DE USUÁRIOS
--------------------------
-
-Criar uma área administrativa para:
-
-- Criar usuários
-- Editar usuários
-- Ativar/desativar usuários
-- Definir perfil
-
-
-CLIENTES
---------
-
-Evoluir o gerenciamento de clientes.
-
-
-FINANCEIRO
-----------
-
-Avaliar:
-
-- Parcelamento
-- Controle de parcelas
-- Datas de vencimento
-- Pagamentos parciais
-- Histórico financeiro
-
-
-RELATÓRIOS
-----------
-
-Avaliar:
-
-- Exportação
-- PDF
-- Excel
-- Novos filtros
-- Novos indicadores
-
-
-INTERFACE
----------
-
-A interface poderá receber melhorias de:
-
-- Organização
-- Cores
-- Componentes
-- Responsividade
-- Experiência do usuário
-
-
-26. STATUS DO PROJETO
-=====================
-
-Projeto em desenvolvimento.
-
-A versão atual já possui:
-
-- Autenticação
-- Controle de perfis
-- Controle de permissões
-- Cadastro de clientes
-- Cadastro de negociações
-- Edição de negociações
-- Controle de pagamentos
-- Controle de negociações vencidas
-- Dashboard financeiro
-- Relatório mensal
-- Auditoria
-- Proteção CSRF
-- Hash de senhas
-- Prepared statements
-- Controle de acesso por usuário
-
-
-27. OBSERVAÇÃO SOBRE AMBIENTE DE PRODUÇÃO
-=========================================
-
-A configuração atual foi criada para desenvolvimento local.
-
-Antes de utilizar o sistema em produção, devem ser realizadas configurações
-adicionais de segurança, infraestrutura e banco de dados.
-
-Entre elas:
-
-- Utilização de credenciais seguras
-- Senhas diferentes das credenciais de teste
-- Variáveis de ambiente
-- HTTPS
-- Configuração segura de cookies
-- Configuração adequada de sessão
-- Backup do banco
-- Controle de acesso ao servidor
-- Monitoramento
-- Configuração adequada do MySQL
-- Revisão completa de segurança
-
-
-28. AUTORIA
-===========
-
-Projeto desenvolvido para estudo e aplicação prática de desenvolvimento
-web utilizando PHP e MySQL.
-
-Tecnologias principais:
-
-PHP
-MySQL
-HTML
-CSS
-JavaScript
-XAMPP
-Git
-GitHub
-
-
-29. LICENÇA
-===========
-
-Projeto destinado a fins de desenvolvimento e estudo.
-
-A definição de uma licença específica poderá ser adicionada posteriormente.
+27. OBSERVAÇÕES FINAIS
+======================
+
+O sistema foi desenvolvido para centralizar os registros de
+atendimentos que anteriormente eram controlados através de
+planilhas individuais.
+
+O objetivo principal é permitir:
+
+- Registro centralizado dos atendimentos.
+- Controle por operador.
+- Acompanhamento dos pagamentos.
+- Histórico das alterações.
+- Relatórios gerenciais.
+- Visualização dos valores negociados e recebidos.
+- Maior rastreabilidade das operações.
+
+
+FLUXO PRINCIPAL ATUAL:
+
+ATENDIMENTO
+    ↓
+VALOR NEGOCIADO
+    ↓
+PAGAMENTO
+    ↓
+HISTÓRICO/AUDITORIA
+    ↓
+RELATÓRIO
+
+O registro do atendimento representa o contato realizado com o
+associado, enquanto o pagamento é registrado separadamente.
+
+Cada contato pode gerar um novo atendimento, mesmo quando a
+inscrição já tenha aparecido anteriormente no sistema.

@@ -1,95 +1,63 @@
 <?php
 
-require_once __DIR__.'/config/bootstrap.php';
+require_once __DIR__ . '/config/bootstrap.php';
 
 exigirLogin();
 
 $u = usuarioAtual();
 $pdo = db();
+
 $filtroUsuario = '';
 $paramsUsuario = [];
 
 if ($u['perfil'] === 'OPERADOR') {
-    $filtroUsuario = ' AND usuario_id = ?';
+    $filtroUsuario = ' WHERE usuario_id = ?';
     $paramsUsuario[] = (int)$u['id'];
 }
 
-// Atualiza automaticamente as negociações que passaram da data combinada
-$pdo->exec("
-    UPDATE negociacoes
-    SET status = 'VENCIDO'
-    WHERE status = 'PENDENTE'
-      AND data_combinada IS NOT NULL
-      AND data_combinada < CURDATE()
-");
-$stmt = $pdo->prepare("
-    SELECT COUNT(*)
-    FROM negociacoes
-    WHERE 1=1 $filtroUsuario
-");
-
-$stmt->execute($paramsUsuario);
-
-$total = (int)$stmt->fetchColumn();
+/*
+|--------------------------------------------------------------------------
+| Total de atendimentos
+|--------------------------------------------------------------------------
+*/
 
 $stmt = $pdo->prepare("
     SELECT COUNT(*)
-    FROM negociacoes
-    WHERE status = 'PENDENTE'
+    FROM atendimentos
     $filtroUsuario
 ");
 
 $stmt->execute($paramsUsuario);
 
-$pend = (int)$stmt->fetchColumn();
+$totalAtendimentos = (int)$stmt->fetchColumn();
+
+
+/*
+|--------------------------------------------------------------------------
+| Total de parcelas em atraso
+|--------------------------------------------------------------------------
+*/
 
 $stmt = $pdo->prepare("
-    SELECT COUNT(*)
-    FROM negociacoes
-    WHERE status = 'PAGO'
+    SELECT COALESCE(SUM(parcelas_em_atraso), 0)
+    FROM atendimentos
     $filtroUsuario
 ");
 
 $stmt->execute($paramsUsuario);
 
-$pagos = (int)$stmt->fetchColumn();
-$stmt = $pdo->prepare("
-    SELECT COUNT(*)
-    FROM negociacoes
-    WHERE status = 'VENCIDO'
-    $filtroUsuario
-");
+$totalParcelasAtraso = (int)$stmt->fetchColumn();
 
-$stmt->execute($paramsUsuario);
 
-$vencidos = (int)$stmt->fetchColumn();
+/*
+|--------------------------------------------------------------------------
+| Valor total negociado
+|--------------------------------------------------------------------------
+*/
 
 $stmt = $pdo->prepare("
-    SELECT COALESCE(SUM(valor_original), 0)
-    FROM negociacoes
-    WHERE 1=1
-    $filtroUsuario
-");
-
-$stmt->execute($paramsUsuario);
-
-$totalBruto = $stmt->fetchColumn();
-
-$stmt = $pdo->prepare("
-    SELECT COALESCE(SUM(desconto), 0)
-    FROM negociacoes
-    WHERE 1=1
-    $filtroUsuario
-");
-
-$stmt->execute($paramsUsuario);
-
-$totalDescontos = $stmt->fetchColumn();
-
-$stmt = $pdo->prepare("
-    SELECT COALESCE(SUM(valor_final), 0)
-    FROM negociacoes
-    WHERE 1=1
+    SELECT COALESCE(SUM(valor_negociado), 0)
+    FROM atendimentos
     $filtroUsuario
 ");
 
@@ -97,10 +65,16 @@ $stmt->execute($paramsUsuario);
 
 $totalNegociado = $stmt->fetchColumn();
 
+
+/*
+|--------------------------------------------------------------------------
+| Valor total recebido
+|--------------------------------------------------------------------------
+*/
+
 $stmt = $pdo->prepare("
-    SELECT COALESCE(SUM(valor_pago), 0)
-    FROM negociacoes
-    WHERE status = 'PAGO'
+    SELECT COALESCE(SUM(valor_recebido), 0)
+    FROM atendimentos
     $filtroUsuario
 ");
 
@@ -108,103 +82,271 @@ $stmt->execute($paramsUsuario);
 
 $totalRecebido = $stmt->fetchColumn();
 
-$stmt = $pdo->prepare("
-    SELECT COALESCE(SUM(valor_final), 0)
-    FROM negociacoes
-    WHERE status IN ('PENDENTE', 'VENCIDO')
-    $filtroUsuario
-");
+/*
+|--------------------------------------------------------------------------
+| Valor recebido hoje
+|--------------------------------------------------------------------------
+*/
 
-$stmt->execute($paramsUsuario);
+if ($u['perfil'] === 'OPERADOR') {
 
-$totalPendente = $stmt->fetchColumn();
+    $stmt = $pdo->prepare("
+        SELECT COALESCE(SUM(valor_recebido), 0)
+        FROM atendimentos
+        WHERE usuario_id = ?
+          AND data_pagamento = CURDATE()
+    ");
+
+    $stmt->execute([(int)$u['id']]);
+
+} else {
+
+    $stmt = $pdo->query("
+        SELECT COALESCE(SUM(valor_recebido), 0)
+        FROM atendimentos
+        WHERE data_pagamento = CURDATE()
+    ");
+}
+
+$totalRecebidoHoje = $stmt->fetchColumn();
+
+/*
+|--------------------------------------------------------------------------
+| Atendimentos realizados hoje
+|--------------------------------------------------------------------------
+*/
+
+if ($u['perfil'] === 'OPERADOR') {
+
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM atendimentos
+        WHERE usuario_id = ?
+          AND data_atendimento = CURDATE()
+    ");
+
+    $stmt->execute([(int)$u['id']]);
+
+} else {
+
+    $stmt = $pdo->query("
+        SELECT COUNT(*)
+        FROM atendimentos
+        WHERE data_atendimento = CURDATE()
+    ");
+}
+
+$atendimentosHoje = (int)$stmt->fetchColumn();
+
 ?>
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sistema de Negociações</title><link rel="stylesheet" href="assets/style.css"></head>
-<body><header class="topbar">
+
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Sistema de Negociações</title>
+
+    <link
+        rel="stylesheet"
+        href="assets/style.css"
+    >
+
+</head>
+
+<body>
+
+<header class="topbar">
+
     <strong>Sistema de Negociações</strong>
 
     <span>
-        <?=e($u['nome'])?> · <?=e($u['perfil'])?> ·
 
-        <form method="POST" action="logout.php" style="display:inline;">
+        <?= e($u['nome']) ?>
+        ·
+        <?= e($u['perfil']) ?>
+        ·
+
+        <form
+            method="POST"
+            action="logout.php"
+            style="display:inline;"
+        >
+
             <input
                 type="hidden"
                 name="csrf_token"
-                value="<?=e(csrfToken())?>"
+                value="<?= e(csrfToken()) ?>"
             >
 
             <button type="submit">
                 Sair
             </button>
+
         </form>
+
     </span>
+
 </header>
-<main class="container"><div class="head"><div><h1>Painel</h1><p>Negociações centralizadas em um único sistema.</p></div><a class="button" href="negociacao.php">+ Nova negociação</a></div>
-<section class="cards">
 
-  <section class="cards">
 
-    <div class="card">
-        <span>Total de negociações</span>
-        <b><?=$total?></b>
+<main class="container">
+
+    <div class="head">
+
+        <div>
+
+            <h1>Painel</h1>
+
+            <p>
+                Atendimentos centralizados em um único sistema.
+            </p>
+
+        </div>
+
+        <a
+            class="button"
+            href="novo_atendimento.php"
+        >
+            + Novo atendimento
+        </a>
+
     </div>
 
-    <div class="card">
-        <span>Pendentes</span>
-        <b><?=$pend?></b>
-    </div>
+
+    <section class="cards">
 
     <div class="card">
-        <span>Vencidos</span>
-        <b><?=$vencidos?></b>
+
+        <span>
+            Total de atendimentos
+        </span>
+
+        <b>
+            <?= $totalAtendimentos ?>
+        </b>
+
     </div>
 
-    <div class="card">
-        <span>Pagas</span>
-        <b><?=$pagos?></b>
-    </div>
 
     <div class="card">
-        <span>Valor bruto negociado</span>
-        <b><?=dinheiro($totalBruto)?></b>
+
+        <span>
+            Atendimentos hoje
+        </span>
+
+        <b>
+            <?= $atendimentosHoje ?>
+        </b>
+
     </div>
 
-    <div class="card">
-        <span>Descontos aplicados</span>
-        <b><?=dinheiro($totalDescontos)?></b>
-    </div>
 
     <div class="card">
-        <span>Total negociado</span>
-        <b><?=dinheiro($totalNegociado)?></b>
-    </div>
+
+    <span>
+        Valor recebido hoje
+    </span>
+
+    <b>
+        <?= dinheiro($totalRecebidoHoje) ?>
+    </b>
+
+</div>
+
 
     <div class="card">
-        <span>Total recebido</span>
-        <b><?=dinheiro($totalRecebido)?></b>
+
+        <span>
+            Valor total negociado
+        </span>
+
+        <b>
+            <?= dinheiro($totalNegociado) ?>
+        </b>
+
     </div>
 
+
     <div class="card">
-        <span>Total pendente</span>
-        <b><?=dinheiro($totalPendente)?></b>
+
+        <span>
+            Total recebido
+        </span>
+
+        <b>
+            <?= dinheiro($totalRecebido) ?>
+        </b>
+
     </div>
 
 </section>
 
-</section><section class="panel"><h2>Ações rápidas</h2><a class="button secondary" href="clientes.php">Clientes</a> <a class="button secondary" href="negociacao.php">Registrar negociação</a> <?php if(in_array($u['perfil'],['ADMIN','SUPERVISOR'],true)): ?><a class="button secondary" href="relatorio.php">Relatório mensal</a><?php endif;?>  <a href="negociacoes.php" class="button">
-        Ver negociações
-    </a>
-    <?php if (usuarioAtual()['perfil'] === 'ADMIN'): ?>
 
-    <a href="usuarios.php" class="button">
-        Usuários
-    </a>
 
-<?php endif; ?>
- <?php if ($u['perfil'] === 'ADMIN'): ?>
+    <section class="panel">
 
-        <a href="auditoria.php" class="button secondary">
-            Auditoria
+        <h2>Ações rápidas</h2>
+
+
+        <a
+            class="button secondary"
+            href="novo_atendimento.php"
+        >
+            Registrar atendimento
         </a>
 
-    <?php endif; ?></section></main></body></html>
+
+        <a
+            class="button secondary"
+            href="atendimentos.php"
+        >
+            Ver atendimentos
+        </a>
+
+
+        <?php if (in_array($u['perfil'], ['ADMIN', 'SUPERVISOR'], true)): ?>
+
+            <a
+                class="button secondary"
+                href="relatorio.php"
+            >
+                Relatório mensal
+            </a>
+
+        <?php endif; ?>
+
+
+        <?php if ($u['perfil'] === 'ADMIN'): ?>
+
+            <a
+                href="usuarios.php"
+                class="button"
+            >
+                Usuários
+            </a>
+
+
+            <a
+                href="auditoria.php"
+                class="button secondary"
+            >
+                Auditoria
+            </a>
+
+        <?php endif; ?>
+
+    </section>
+
+</main>
+
+</body>
+
+</html>
