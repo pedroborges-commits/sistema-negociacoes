@@ -376,7 +376,7 @@ foreach ($rows as $row) {
 
                     <tr>
 
-                        <td colspan="6">
+                        <td colspan="8">
                             Nenhum atendimento encontrado.
                         </td>
 

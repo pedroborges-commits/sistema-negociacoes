@@ -82,6 +82,28 @@ $stmt->execute($paramsUsuario);
 
 $totalRecebido = $stmt->fetchColumn();
 
+if ($u['perfil'] === 'OPERADOR') {
+
+    $stmt = $pdo->prepare("
+        SELECT COALESCE(SUM(valor_negociado), 0)
+        FROM atendimentos
+        WHERE usuario_id = ?
+          AND data_atendimento = CURDATE()
+    ");
+
+    $stmt->execute([(int)$u['id']]);
+
+} else {
+
+    $stmt = $pdo->query("
+        SELECT COALESCE(SUM(valor_negociado), 0)
+        FROM atendimentos
+        WHERE data_atendimento = CURDATE()
+    ");
+}
+
+$totalNegociadoHoje = $stmt->fetchColumn();
+
 /*
 |--------------------------------------------------------------------------
 | Valor recebido hoje
@@ -221,7 +243,9 @@ $atendimentosHoje = (int)$stmt->fetchColumn();
     </div>
 
 
-    <section class="cards">
+   <h2>Visão geral</h2>
+
+<section class="cards">
 
     <div class="card">
 
@@ -234,32 +258,6 @@ $atendimentosHoje = (int)$stmt->fetchColumn();
         </b>
 
     </div>
-
-
-    <div class="card">
-
-        <span>
-            Atendimentos hoje
-        </span>
-
-        <b>
-            <?= $atendimentosHoje ?>
-        </b>
-
-    </div>
-
-
-    <div class="card">
-
-    <span>
-        Valor recebido hoje
-    </span>
-
-    <b>
-        <?= dinheiro($totalRecebidoHoje) ?>
-    </b>
-
-</div>
 
 
     <div class="card">
@@ -289,6 +287,50 @@ $atendimentosHoje = (int)$stmt->fetchColumn();
 
 </section>
 
+
+<h2>Hoje</h2>
+
+<section class="cards">
+
+    <div class="card">
+
+        <span>
+            Atendimentos hoje
+        </span>
+
+        <b>
+            <?= $atendimentosHoje ?>
+        </b>
+
+    </div>
+
+
+    <div class="card">
+
+        <span>
+            Valor negociado hoje
+        </span>
+
+        <b>
+            <?= dinheiro($totalNegociadoHoje) ?>
+        </b>
+
+    </div>
+
+
+    <div class="card">
+
+        <span>
+            Valor recebido hoje
+        </span>
+
+        <b>
+            <?= dinheiro($totalRecebidoHoje) ?>
+        </b>
+
+    </div>
+
+</section>
 
 
     <section class="panel">

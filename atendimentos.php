@@ -4,9 +4,6 @@ require_once __DIR__ . '/config/bootstrap.php';
 
 exigirLogin();
 
-$pdo = db();
-$u = usuarioAtual();
-
 
 /*
 |--------------------------------------------------------------------------
@@ -21,54 +18,199 @@ $u = usuarioAtual();
 |
 */
 
+$pdo = db();
+$u = usuarioAtual();
+
+/*
+|--------------------------------------------------------------------------
+| Filtros
+|--------------------------------------------------------------------------
+*/
+
+$inscricao = trim($_GET['inscricao'] ?? '');
+$dataInicial = $_GET['data_inicial'] ?? '';
+$dataFinal = $_GET['data_final'] ?? '';
+$operadoraId = (int)($_GET['operadora'] ?? 0);
+$pagamento = $_GET['pagamento'] ?? '';
+$erroFiltro = '';
+
+if (
+    $dataInicial !== '' &&
+    $dataFinal !== '' &&
+    validarData($dataInicial) &&
+    validarData($dataFinal) &&
+    $dataInicial > $dataFinal
+) {
+    $erroFiltro = 'A data inicial não pode ser posterior à data final.';
+}
+/*
+|--------------------------------------------------------------------------
+| Operadoras disponíveis para o filtro
+|--------------------------------------------------------------------------
+*/
+
+$operadoras = $pdo->query("
+    SELECT
+        id,
+        nome
+    FROM usuarios
+    WHERE ativo = 1
+    ORDER BY nome
+")->fetchAll();
+
+/*
+|--------------------------------------------------------------------------
+| Consulta dos atendimentos
+|--------------------------------------------------------------------------
+*/
+
+$sql = "
+    SELECT
+        a.id,
+        a.data_atendimento,
+        a.inscricao,
+        a.parcelas_em_atraso,
+        a.valor_negociado,
+        a.valor_recebido,
+        a.data_pagamento,
+        a.observacoes,
+        u.nome AS usuario_nome
+
+    FROM atendimentos a
+
+    INNER JOIN usuarios u
+        ON u.id = a.usuario_id
+
+    WHERE 1 = 1
+";
+
+$params = [];
+
+/*
+|--------------------------------------------------------------------------
+| Permissão do operador
+|--------------------------------------------------------------------------
+*/
+
 if ($u['perfil'] === 'OPERADOR') {
 
-    $stmt = $pdo->prepare("
-        SELECT
-            a.id,
-            a.data_atendimento,
-            a.inscricao,
-            a.parcelas_em_atraso,
-            a.valor_negociado,
-            a.valor_recebido,
-            a.data_pagamento,
-            a.observacoes,
-            u.nome AS usuario_nome
-        FROM atendimentos a
-        INNER JOIN usuarios u
-            ON u.id = a.usuario_id
-        WHERE a.usuario_id = ?
-        ORDER BY
-            a.data_atendimento DESC,
-            a.id DESC
-    ");
+    $sql .= "
+        AND a.usuario_id = ?
+    ";
 
-    $stmt->execute([$u['id']]);
+    $params[] = (int)$u['id'];
+}
+
+/*
+|--------------------------------------------------------------------------
+| Filtro por inscrição
+|--------------------------------------------------------------------------
+*/
+
+if ($inscricao !== '') {
+
+    $sql .= "
+        AND a.inscricao = ?
+    ";
+
+    $params[] = $inscricao;
+}
+/*
+|--------------------------------------------------------------------------
+| Filtro por data inicial
+|--------------------------------------------------------------------------
+*/
+
+if ($dataInicial !== '') {
+
+    if (validarData($dataInicial)) {
+
+        $sql .= "
+            AND a.data_atendimento >= ?
+        ";
+
+        $params[] = $dataInicial;
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Filtro por data final
+|--------------------------------------------------------------------------
+*/
+
+if ($dataFinal !== '') {
+
+    if (validarData($dataFinal)) {
+
+        $sql .= "
+            AND a.data_atendimento <= ?
+        ";
+
+        $params[] = $dataFinal;
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Filtro por operadora
+|--------------------------------------------------------------------------
+*/
+
+if (
+    $u['perfil'] !== 'OPERADOR' &&
+    $operadoraId > 0
+) {
+
+    $sql .= "
+        AND a.usuario_id = ?
+    ";
+
+    $params[] = $operadoraId;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Filtro por pagamento
+|--------------------------------------------------------------------------
+*/
+
+if ($pagamento === 'pago') {
+
+    $sql .= "
+        AND a.valor_recebido IS NOT NULL
+    ";
+
+} elseif ($pagamento === 'nao_pago') {
+
+    $sql .= "
+        AND a.valor_recebido IS NULL
+    ";
+}
+
+/*
+|--------------------------------------------------------------------------
+| Ordenação
+|--------------------------------------------------------------------------
+*/
+
+$sql .= "
+    ORDER BY
+        a.data_atendimento DESC,
+        a.id DESC
+";
+
+if ($erroFiltro === '') {
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+
+    $atendimentos = $stmt->fetchAll();
 
 } else {
 
-    $stmt = $pdo->query("
-        SELECT
-            a.id,
-            a.data_atendimento,
-            a.inscricao,
-            a.parcelas_em_atraso,
-            a.valor_negociado,
-            a.valor_recebido,
-            a.data_pagamento,
-            a.observacoes,
-            u.nome AS usuario_nome
-        FROM atendimentos a
-        INNER JOIN usuarios u
-            ON u.id = a.usuario_id
-        ORDER BY
-            a.data_atendimento DESC,
-            a.id DESC
-    ");
+    $atendimentos = [];
 }
-
-$atendimentos = $stmt->fetchAll();
-
 ?>
 
 <!doctype html>
@@ -164,13 +306,159 @@ $atendimentos = $stmt->fetchAll();
 
     <div class="panel">
 
-        <?php if (!$atendimentos): ?>
+    <form method="GET">
 
-            <p>
-                Nenhum atendimento cadastrado.
-            </p>
+        <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:end;">
 
-        <?php else: ?>
+            <div>
+                <label for="inscricao">
+                    Inscrição
+                </label>
+
+                <input
+                    type="text"
+                    id="inscricao"
+                    name="inscricao"
+                    value="<?= e($inscricao) ?>"
+                    placeholder="Digite a inscrição"
+                >
+            </div>
+
+            <div>
+                <label for="data_inicial">
+                    Data inicial
+                </label>
+
+                <input
+                    type="date"
+                    id="data_inicial"
+                    name="data_inicial"
+                    value="<?= e($dataInicial) ?>"
+                >
+            </div>
+
+            <div>
+                <label for="data_final">
+                    Data final
+                </label>
+
+                <input
+                    type="date"
+                    id="data_final"
+                    name="data_final"
+                    value="<?= e($dataFinal) ?>"
+                >
+            </div>
+
+            <?php if ($u['perfil'] !== 'OPERADOR'): ?>
+
+                <div>
+                    <label for="operadora">
+                        Operadora
+                    </label>
+
+                    <select
+                        id="operadora"
+                        name="operadora"
+                    >
+                        <option value="0">
+                            Todas
+                        </option>
+
+                        <?php foreach ($operadoras as $operadora): ?>
+
+                            <option
+                                value="<?= $operadora['id'] ?>"
+                                <?= $operadoraId === (int)$operadora['id']
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                <?= e($operadora['nome']) ?>
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+                </div>
+
+            <?php endif; ?>
+
+            <div>
+                <label for="pagamento">
+                    Pagamento
+                </label>
+
+                <select
+                    id="pagamento"
+                    name="pagamento"
+                >
+                    <option
+                        value=""
+                        <?= $pagamento === ''
+                            ? 'selected'
+                            : '' ?>
+                    >
+                        Todos
+                    </option>
+
+                    <option
+                        value="pago"
+                        <?= $pagamento === 'pago'
+                            ? 'selected'
+                            : '' ?>
+                    >
+                        Pago
+                    </option>
+
+                    <option
+                        value="nao_pago"
+                        <?= $pagamento === 'nao_pago'
+                            ? 'selected'
+                            : '' ?>
+                    >
+                        Não pago
+                    </option>
+
+                </select>
+            </div>
+
+            <div>
+
+                <button
+                    type="submit"
+                    class="button"
+                >
+                    Filtrar
+                </button>
+
+                <a
+                    href="atendimentos.php"
+                    class="button secondary"
+                >
+                    Limpar
+                </a>
+
+            </div>
+
+        </div>
+
+    </form>
+<hr>
+
+<?php if ($erroFiltro !== ''): ?>
+
+    <p>
+        <?= e($erroFiltro) ?>
+    </p>
+
+<?php elseif (empty($atendimentos)): ?>
+
+    <p>
+        Nenhum atendimento encontrado.
+    </p>
+
+<?php else: ?>
+   
 
             <div style="overflow-x:auto;">
 

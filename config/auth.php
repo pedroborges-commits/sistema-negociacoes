@@ -49,21 +49,7 @@ function sair(): void {
     header('Location: login.php'); exit;
 }
 
-function podeAcessarNegociacao(array $negociacao): bool {
-    $usuario = usuarioAtual();
 
-    if (!$usuario) {
-        return false;
-    }
-
-    // Supervisor e Admin podem acessar qualquer negociação
-    if (in_array($usuario['perfil'], ['SUPERVISOR', 'ADMIN'], true)) {
-        return true;
-    }
-
-    // Operador só pode acessar suas próprias negociações
-    return (int)$negociacao['usuario_id'] === (int)$usuario['id'];
-}
 function registrarAuditoria(
     string $acao,
     string $tabela,

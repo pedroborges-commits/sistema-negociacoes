@@ -37,33 +37,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
 ) ENGINE=InnoDB;
 
 
--- =========================================================
--- CLIENTES
--- Mantida por compatibilidade com a estrutura antiga.
--- O novo fluxo de atendimento utiliza a inscrição
--- diretamente e não depende desta tabela.
--- =========================================================
 
-CREATE TABLE IF NOT EXISTS clientes (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
-    nome VARCHAR(150) NOT NULL,
-
-    documento VARCHAR(30) NULL UNIQUE,
-
-    telefone VARCHAR(30) NULL,
-
-    email VARCHAR(150) NULL,
-
-    ativo TINYINT(1) NOT NULL DEFAULT 1,
-
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-
-    INDEX idx_cliente_nome(nome)
-) ENGINE=InnoDB;
 
 
 -- =========================================================
@@ -71,6 +46,7 @@ CREATE TABLE IF NOT EXISTS clientes (
 -- Novo fluxo principal do sistema.
 -- Cada registro representa um atendimento realizado.
 -- =========================================================
+
 
 CREATE TABLE IF NOT EXISTS atendimentos (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -93,60 +69,17 @@ CREATE TABLE IF NOT EXISTS atendimentos (
 
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
--- =========================================================
--- NEGOCIAÇÕES
--- ESTRUTURA LEGADA.
--- Mantida temporariamente porque o fluxo antigo de
--- pagamento ainda utiliza esta tabela.
--- =========================================================
-
-CREATE TABLE IF NOT EXISTS negociacoes (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-
-    cliente_id INT UNSIGNED NOT NULL,
-
-    usuario_id INT UNSIGNED NOT NULL,
-
-    data_contato DATE NOT NULL,
-
-    valor_original DECIMAL(12,2) NOT NULL,
-
-    desconto DECIMAL(12,2) NOT NULL DEFAULT 0,
-
-    valor_final DECIMAL(12,2) NOT NULL,
-
-    data_combinada DATE NULL,
-
-    data_pagamento DATE NULL,
-
-    valor_pago DECIMAL(12,2) NULL,
-
-    status ENUM(
-        'PENDENTE',
-        'PAGO',
-        'VENCIDO',
-        'CANCELADO'
-    ) NOT NULL DEFAULT 'PENDENTE',
-
-    descricao TEXT NULL,
-
-    observacoes TEXT NULL,
-
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
     atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (cliente_id)
-        REFERENCES clientes(id),
 
     FOREIGN KEY (usuario_id)
         REFERENCES usuarios(id),
 
-    INDEX idx_neg_data(data_contato),
-
-    INDEX idx_neg_status(status)
+    INDEX idx_atendimento_data (data_atendimento),
+    INDEX idx_atendimento_inscricao (inscricao),
+    INDEX idx_atendimento_usuario (usuario_id)
 ) ENGINE=InnoDB;
+
 
 
 -- =========================================================
@@ -276,26 +209,3 @@ AND NOT EXISTS (
 );
 
 
--- =========================================================
--- CLIENTE DE EXEMPLO
--- Estrutura legada.
--- =========================================================
-
-INSERT INTO clientes(
-    nome,
-    documento,
-    telefone,
-    email
-)
-
-SELECT
-    'Cliente Exemplo',
-    '00000000000',
-    '(22) 99999-9999',
-    'cliente@local.test'
-
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM clientes
-    WHERE documento = '00000000000'
-);
