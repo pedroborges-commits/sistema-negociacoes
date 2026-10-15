@@ -112,22 +112,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     |--------------------------------------------------------------------------
     */
 
-    if ($erro === '') {
+  
+if ($erro === '') {
+    $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
+    $pdo = db();
 
-        $stmtEmail = db()->prepare("
-            SELECT id
-            FROM usuarios
-            WHERE email = ?
-            LIMIT 1
+    try {
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare("
+            INSERT INTO usuarios (
+                nome,
+                email,
+                senha,
+                perfil_id,
+                ativo,
+                precisa_trocar_senha
+            )
+            VALUES (?, ?, ?, ?, 1, 1)
         ");
 
-        $stmtEmail->execute([$email]);
+        $stmt->execute([
+            $nome,
+            $email,
+            $senhaHash,
+            $perfilIdInt
+        ]);
 
-        if ($stmtEmail->fetch()) {
+        $novoUsuarioId = (int) $pdo->lastInsertId();
 
+        registrarAuditoria(
+            'CRIAR',
+            'usuarios',
+            $novoUsuarioId,
+            null,
+            [
+                'nome' => $nome,
+                'email' => $email,
+                'perfil_id' => $perfilIdInt,
+                'perfil' => $perfil['nome'],
+                'ativo' => 1,
+                'precisa_trocar_senha' => 1
+            ]
+        );
+
+        $pdo->commit();
+
+        $mensagem = 'Usuário criado com sucesso. Ele deverá trocar a senha no primeiro acesso.';
+
+        $nome = '';
+        $email = '';
+        $perfilId = '';
+
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        error_log('Erro ao criar usuário: ' . $e->getMessage());
+
+        if (
+            $e instanceof PDOException &&
+            isset($e->errorInfo[1]) &&
+            (int) $e->errorInfo[1] === 1062
+        ) {
             $erro = 'Já existe um usuário cadastrado com este e-mail.';
+        } else {
+            $erro = 'Não foi possível criar o usuário.';
         }
     }
+}
+
 
     /*
     |--------------------------------------------------------------------------

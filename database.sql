@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     senha VARCHAR(255) NOT NULL,
     perfil_id INT UNSIGNED NOT NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
+    precisa_trocar_senha TINYINT(1) NOT NULL DEFAULT 0,
 
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -35,7 +36,6 @@ CREATE TABLE IF NOT EXISTS usuarios (
     FOREIGN KEY (perfil_id)
         REFERENCES perfis(id)
 ) ENGINE=InnoDB;
-
 
 
 
