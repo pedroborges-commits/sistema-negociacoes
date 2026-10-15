@@ -1,9 +1,23 @@
 <?php
 require_once __DIR__.'/config/bootstrap.php';
-if(usuarioAtual()){header('Location:index.php');exit;}
+if (usuarioAtual()) {
+    $destino = !empty(usuarioAtual()['precisa_trocar_senha'])
+        ? 'trocar_senha.php'
+        : 'index.php';
+
+    header('Location: ' . $destino);
+    exit;
+}
 $erro='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
- if(login(trim($_POST['email']??''),$_POST['senha']??'')){header('Location:index.php');exit;}
+if (login(trim($_POST['email'] ?? ''), $_POST['senha'] ?? '')) {
+    $destino = !empty(usuarioAtual()['precisa_trocar_senha'])
+        ? 'trocar_senha.php'
+        : 'index.php';
+
+    header('Location: ' . $destino);
+    exit;
+}
  $erro='E-mail ou senha inválidos.';
 }
 ?>

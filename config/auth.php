@@ -13,10 +13,32 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
 function usuarioAtual(): ?array { return $_SESSION['usuario'] ?? null; }
 
-function exigirLogin(): void {
-    if (!usuarioAtual()) { header('Location: login.php'); exit; }
-}
+function exigirLogin(): void
+{
+    if (!usuarioAtual()) {
+        header('Location: login.php');
+        exit;
+    }
 
+    $usuario = usuarioAtual();
+
+    $paginaAtual = basename(
+        $_SERVER['SCRIPT_NAME'] ?? ''
+    );
+
+    $paginasPermitidas = [
+        'trocar_senha.php',
+        'logout.php'
+    ];
+
+    if (
+        !empty($usuario['precisa_trocar_senha']) &&
+        !in_array($paginaAtual, $paginasPermitidas, true)
+    ) {
+        header('Location: trocar_senha.php');
+        exit;
+    }
+}
 function exigirPerfis(array $perfis): void {
     exigirLogin();
     if (!in_array(usuarioAtual()['perfil'], $perfis, true)) {
@@ -24,18 +46,36 @@ function exigirPerfis(array $perfis): void {
     }
 }
 
-function login(string $email, string $senha): bool {
+function login(string $email, string $senha): bool
+{
     $stmt = db()->prepare(
-        'SELECT u.id,u.nome,u.email,u.senha,p.nome AS perfil
-         FROM usuarios u INNER JOIN perfis p ON p.id=u.perfil_id
-         WHERE u.email=? AND u.ativo=1 LIMIT 1'
+        'SELECT
+            u.id,
+            u.nome,
+            u.email,
+            u.senha,
+            u.precisa_trocar_senha,
+            p.nome AS perfil
+         FROM usuarios u
+         INNER JOIN perfis p ON p.id = u.perfil_id
+         WHERE u.email = ? AND u.ativo = 1
+         LIMIT 1'
     );
+
     $stmt->execute([$email]);
-    $u=$stmt->fetch();
-    if (!$u || !password_verify($senha,$u['senha'])) return false;
+
+    $u = $stmt->fetch();
+
+    if (!$u || !password_verify($senha, $u['senha'])) {
+        return false;
+    }
+
     session_regenerate_id(true);
+
     unset($u['senha']);
-    $_SESSION['usuario']=$u;
+
+    $_SESSION['usuario'] = $u;
+
     return true;
 }
 
@@ -59,6 +99,20 @@ function registrarAuditoria(
 ): void {
     $usuario = usuarioAtual();
 
+    $anterioresJson = $dadosAnteriores !== null
+        ? json_encode(
+            $dadosAnteriores,
+            JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
+        )
+        : null;
+
+    $novosJson = $dadosNovos !== null
+        ? json_encode(
+            $dadosNovos,
+            JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
+        )
+        : null;
+
     $stmt = db()->prepare("
         INSERT INTO auditoria (
             usuario_id,
@@ -76,12 +130,8 @@ function registrarAuditoria(
         $acao,
         $tabela,
         $registroId,
-        $dadosAnteriores !== null
-            ? json_encode($dadosAnteriores, JSON_UNESCAPED_UNICODE)
-            : null,
-        $dadosNovos !== null
-            ? json_encode($dadosNovos, JSON_UNESCAPED_UNICODE)
-            : null
+        $anterioresJson,
+        $novosJson
     ]);
 }
 

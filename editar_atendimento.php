@@ -1,3 +1,4 @@
+
 <?php
 
 require_once __DIR__ . '/config/bootstrap.php';
@@ -16,7 +17,6 @@ if ($id <= 0) {
     die('Atendimento inválido.');
 }
 
-
 /*
 |--------------------------------------------------------------------------
 | Busca o atendimento
@@ -34,25 +34,16 @@ $stmt = $pdo->prepare("
 ");
 
 $stmt->execute([$id]);
-
 $atendimento = $stmt->fetch();
 
 if (!$atendimento) {
     die('Atendimento não encontrado.');
 }
 
-
 /*
 |--------------------------------------------------------------------------
 | Verifica permissão
 |--------------------------------------------------------------------------
-|
-| OPERADOR:
-| somente os próprios atendimentos.
-|
-| SUPERVISOR e ADMIN:
-| qualquer atendimento.
-|
 */
 
 if (
@@ -63,24 +54,19 @@ if (
     exit('Você não tem permissão para editar este atendimento.');
 }
 
-
 /*
 |--------------------------------------------------------------------------
 | Verifica se o atendimento já foi pago
 |--------------------------------------------------------------------------
-|
-| Depois do pagamento, somente a observação pode ser alterada.
-|
 */
 
 $estaPago =
     $atendimento['valor_recebido'] !== null ||
     $atendimento['data_pagamento'] !== null;
 
-
 /*
 |--------------------------------------------------------------------------
-| Salva as alterações
+| Processamento das alterações
 |--------------------------------------------------------------------------
 */
 
@@ -88,203 +74,226 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     validarCsrf();
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Atendimento já pago
-    |--------------------------------------------------------------------------
-    |
-    | Somente a observação pode ser alterada.
-    |
-    */
-
-    if ($estaPago) {
-
-        $dadosAnteriores = [
-            'observacoes' => $atendimento['observacoes']
-        ];
-
-        $observacoes = trim(
-            $_POST['observacoes'] ?? ''
-        );
-
+    try {
 
         /*
         |--------------------------------------------------------------------------
-        | Atualiza somente a observação
+        | Inicia a transação e bloqueia o atendimento durante a edição
         |--------------------------------------------------------------------------
         */
+
+        $pdo->beginTransaction();
 
         $stmt = $pdo->prepare("
-            UPDATE atendimentos
-            SET observacoes = ?
-            WHERE id = ?
-              AND (
-                  valor_recebido IS NOT NULL
-                  OR data_pagamento IS NOT NULL
-              )
+            SELECT
+                a.*,
+                u.nome AS usuario_nome
+            FROM atendimentos a
+            INNER JOIN usuarios u ON u.id = a.usuario_id
+            WHERE a.id = ?
+            LIMIT 1
+            FOR UPDATE
         ");
 
-        $stmt->execute([
-            $observacoes !== '' ? $observacoes : null,
-            $id
-        ]);
+        $stmt->execute([$id]);
+        $atendimento = $stmt->fetch();
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Dados novos para auditoria
-        |--------------------------------------------------------------------------
-        */
-
-        $dadosNovos = [
-            'observacoes' => $observacoes !== ''
-                ? $observacoes
-                : null
-        ];
-
+        if (!$atendimento) {
+            throw new RuntimeException(
+                'O atendimento não foi encontrado.'
+            );
+        }
 
         /*
         |--------------------------------------------------------------------------
-        | Registra a alteração
+        | Confirma novamente a permissão
         |--------------------------------------------------------------------------
         */
 
-        registrarAuditoria(
-            'EDITAR_OBSERVACAO',
-            'atendimentos',
-            $id,
-            $dadosAnteriores,
-            $dadosNovos
-        );
-
+        if (
+            $u['perfil'] === 'OPERADOR' &&
+            (int)$atendimento['usuario_id'] !== (int)$u['id']
+        ) {
+            throw new RuntimeException(
+                'Você não tem permissão para editar este atendimento.'
+            );
+        }
 
         /*
         |--------------------------------------------------------------------------
-        | Atualiza o valor exibido na página
+        | Confere novamente se existe pagamento
         |--------------------------------------------------------------------------
         */
 
-        $atendimento['observacoes'] =
-            $observacoes !== ''
+        $estaPago =
+            $atendimento['valor_recebido'] !== null ||
+            $atendimento['data_pagamento'] !== null;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Atendimento pago: permite alterar somente a observação
+        |--------------------------------------------------------------------------
+        */
+
+        if ($estaPago) {
+
+            $dadosAnteriores = [
+                'observacoes' => $atendimento['observacoes']
+            ];
+
+            $observacoes = trim(
+                $_POST['observacoes'] ?? ''
+            );
+
+            $observacoesNovas = $observacoes !== ''
                 ? $observacoes
                 : null;
 
-        $ok = 'Observação atualizada com sucesso.';
+            $stmt = $pdo->prepare("
+                UPDATE atendimentos
+                SET observacoes = ?
+                WHERE id = ?
+                  AND (
+                      valor_recebido IS NOT NULL
+                      OR data_pagamento IS NOT NULL
+                  )
+            ");
 
+            $stmt->execute([
+                $observacoesNovas,
+                $id
+            ]);
 
-    } else {
+            $dadosNovos = [
+                'observacoes' => $observacoesNovas
+            ];
 
-        /*
-        |--------------------------------------------------------------------------
-        | Atendimento ainda não pago
-        |--------------------------------------------------------------------------
-        |
-        | Todos os dados do atendimento podem ser alterados.
-        |
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | Registra a auditoria na mesma transação
+            |--------------------------------------------------------------------------
+            */
 
-        $dadosAnteriores = [
-            'usuario_id' => (int)$atendimento['usuario_id'],
-            'data_atendimento' => $atendimento['data_atendimento'],
-            'inscricao' => $atendimento['inscricao'],
-            'parcelas_em_atraso' => (int)$atendimento['parcelas_em_atraso'],
-            'valor_negociado' => $atendimento['valor_negociado'],
-            'observacoes' => $atendimento['observacoes']
-        ];
+            registrarAuditoria(
+                'EDITAR_OBSERVACAO',
+                'atendimentos',
+                $id,
+                $dadosAnteriores,
+                $dadosNovos
+            );
 
+            /*
+            |--------------------------------------------------------------------------
+            | Confirma a alteração e a auditoria juntas
+            |--------------------------------------------------------------------------
+            */
 
-        /*
-        |--------------------------------------------------------------------------
-        | Dados enviados pelo formulário
-        |--------------------------------------------------------------------------
-        */
+            $pdo->commit();
 
-        $data = $_POST['data_atendimento'] ?? '';
+            $atendimento['observacoes'] = $observacoesNovas;
 
-        $inscricao = trim(
-            $_POST['inscricao'] ?? ''
-        );
-
-        $parcelas = (int)(
-            $_POST['parcelas_em_atraso'] ?? 0
-        );
-
-        $valorNegociado = (float)(
-            $_POST['valor_negociado'] ?? 0
-        );
-
-        $observacoes = trim(
-            $_POST['observacoes'] ?? ''
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validações
-        |--------------------------------------------------------------------------
-        */
-
-        if (!validarData($data)) {
-
-            $erro = 'Informe uma data de atendimento válida.';
-
-        } elseif ($inscricao === '') {
-
-            $erro = 'Informe a inscrição.';
-
-        } elseif ($parcelas < 1) {
-
-            $erro = 'A quantidade de parcelas em atraso deve ser de pelo menos 1.';
-
-        } elseif ($valorNegociado <= 0) {
-
-            $erro = 'O valor negociado deve ser maior que zero.';
+            $ok = 'Observação atualizada com sucesso.';
 
         } else {
 
             /*
             |--------------------------------------------------------------------------
-            | Atualiza o atendimento
+            | Atendimento pendente: coleta os dados do formulário
             |--------------------------------------------------------------------------
-            |
-            | A condição abaixo garante que um atendimento que tenha
-            | recebido pagamento não possa ser alterado por este fluxo.
-            |
             */
 
-            $stmt = $pdo->prepare("
-                UPDATE atendimentos
-                SET
-                    data_atendimento = ?,
-                    inscricao = ?,
-                    parcelas_em_atraso = ?,
-                    valor_negociado = ?,
-                    observacoes = ?
-                WHERE id = ?
-                  AND valor_recebido IS NULL
-                  AND data_pagamento IS NULL
-            ");
+            $dadosAnteriores = [
+                'usuario_id' => (int)$atendimento['usuario_id'],
+                'data_atendimento' => $atendimento['data_atendimento'],
+                'inscricao' => $atendimento['inscricao'],
+                'parcelas_em_atraso' => (int)$atendimento['parcelas_em_atraso'],
+                'valor_negociado' => $atendimento['valor_negociado'],
+                'observacoes' => $atendimento['observacoes']
+            ];
 
-            $stmt->execute([
-                $data,
-                $inscricao,
-                $parcelas,
-                $valorNegociado,
-                $observacoes !== '' ? $observacoes : null,
-                $id
-            ]);
+            $data = $_POST['data_atendimento'] ?? '';
 
+            $inscricao = trim(
+                $_POST['inscricao'] ?? ''
+            );
 
-            if ($stmt->rowCount() !== 1) {
+            $parcelasTexto = $_POST['parcelas_em_atraso'] ?? '';
+            $parcelas = filter_var(
+                $parcelasTexto,
+                FILTER_VALIDATE_INT
+            );
 
-                $erro = 'Não foi possível atualizar o atendimento. Ele pode já possuir um pagamento registrado.';
+            $valorTexto = $_POST['valor_negociado'] ?? '';
+            $valorNegociado = is_numeric($valorTexto)
+                ? (float)$valorTexto
+                : 0;
+
+            $observacoes = trim(
+                $_POST['observacoes'] ?? ''
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Validações
+            |--------------------------------------------------------------------------
+            */
+
+            if (!validarData($data)) {
+
+                $erro = 'Informe uma data de atendimento válida.';
+
+            } elseif ($inscricao === '') {
+
+                $erro = 'Informe a inscrição.';
+
+            } elseif (
+                $parcelas === false ||
+                $parcelas < 1
+            ) {
+
+                $erro = 'A quantidade de parcelas em atraso deve ser um número inteiro de pelo menos 1.';
+
+            } elseif (
+                !is_numeric($valorTexto) ||
+                $valorNegociado <= 0 ||
+                !is_finite($valorNegociado)
+            ) {
+
+                $erro = 'O valor negociado deve ser maior que zero.';
 
             } else {
 
                 /*
                 |--------------------------------------------------------------------------
-                | Busca novamente os dados atualizados
+                | Atualiza o atendimento ainda não pago
+                |--------------------------------------------------------------------------
+                */
+
+                $stmt = $pdo->prepare("
+                    UPDATE atendimentos
+                    SET
+                        data_atendimento = ?,
+                        inscricao = ?,
+                        parcelas_em_atraso = ?,
+                        valor_negociado = ?,
+                        observacoes = ?
+                    WHERE id = ?
+                      AND valor_recebido IS NULL
+                      AND data_pagamento IS NULL
+                ");
+
+                $stmt->execute([
+                    $data,
+                    $inscricao,
+                    $parcelas,
+                    $valorNegociado,
+                    $observacoes !== '' ? $observacoes : null,
+                    $id
+                ]);
+
+                /*
+                |--------------------------------------------------------------------------
+                | Busca os dados atualizados
                 |--------------------------------------------------------------------------
                 */
 
@@ -299,29 +308,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ");
 
                 $stmt->execute([$id]);
+                $atendimentoAtualizado = $stmt->fetch();
 
-                $atendimento = $stmt->fetch();
-
+                if (
+                    !$atendimentoAtualizado ||
+                    $atendimentoAtualizado['valor_recebido'] !== null ||
+                    $atendimentoAtualizado['data_pagamento'] !== null
+                ) {
+                    throw new RuntimeException(
+                        'Não foi possível atualizar o atendimento. Verifique se ele já possui um pagamento registrado.'
+                    );
+                }
 
                 /*
                 |--------------------------------------------------------------------------
-                | Dados novos para auditoria
+                | Prepara os dados novos para a auditoria
                 |--------------------------------------------------------------------------
                 */
 
                 $dadosNovos = [
-                    'usuario_id' => (int)$atendimento['usuario_id'],
-                    'data_atendimento' => $atendimento['data_atendimento'],
-                    'inscricao' => $atendimento['inscricao'],
-                    'parcelas_em_atraso' => (int)$atendimento['parcelas_em_atraso'],
-                    'valor_negociado' => $atendimento['valor_negociado'],
-                    'observacoes' => $atendimento['observacoes']
+                    'usuario_id' => (int)$atendimentoAtualizado['usuario_id'],
+                    'data_atendimento' => $atendimentoAtualizado['data_atendimento'],
+                    'inscricao' => $atendimentoAtualizado['inscricao'],
+                    'parcelas_em_atraso' => (int)$atendimentoAtualizado['parcelas_em_atraso'],
+                    'valor_negociado' => $atendimentoAtualizado['valor_negociado'],
+                    'observacoes' => $atendimentoAtualizado['observacoes']
                 ];
-
 
                 /*
                 |--------------------------------------------------------------------------
-                | Registra a alteração
+                | Registra a auditoria na mesma transação
                 |--------------------------------------------------------------------------
                 */
 
@@ -333,10 +349,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $dadosNovos
                 );
 
+                /*
+                |--------------------------------------------------------------------------
+                | Confirma a alteração e a auditoria juntas
+                |--------------------------------------------------------------------------
+                */
+
+                $pdo->commit();
+
+                $atendimento = $atendimentoAtualizado;
 
                 $ok = 'Atendimento atualizado com sucesso.';
             }
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Se houve erro de validação, desfaz a transação
+        |--------------------------------------------------------------------------
+        */
+
+        if ($erro !== '' && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+    } catch (Throwable $e) {
+
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        error_log(
+            'Erro ao editar atendimento: ' . $e->getMessage()
+        );
+
+        if (
+            $e instanceof RuntimeException &&
+            (
+                $e->getMessage() === 'Você não tem permissão para editar este atendimento.' ||
+                $e->getMessage() === 'O atendimento não foi encontrado.'
+            )
+        ) {
+            http_response_code(
+                $e->getMessage() === 'O atendimento não foi encontrado.'
+                    ? 404
+                    : 403
+            );
+
+            exit(e($e->getMessage()));
+        }
+
+        $erro = 'Não foi possível salvar as alterações. Nenhuma alteração foi confirmada. Tente novamente.';
     }
 }
 
@@ -397,7 +460,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 </header>
 
-
 <main class="container">
 
     <div class="head">
@@ -434,17 +496,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     </div>
 
-
     <?php if ($erro): ?>
 
         <div class="panel">
 
             <p>
-
                 <strong>Erro:</strong>
-
                 <?= e($erro) ?>
-
             </p>
 
         </div>
@@ -454,17 +512,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="panel">
 
             <p>
-
-                <strong>
-                    <?= e($ok) ?>
-                </strong>
-
+                <strong><?= e($ok) ?></strong>
             </p>
 
         </div>
 
     <?php endif; ?>
-
 
     <section class="panel">
 
@@ -482,7 +535,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 value="<?= e(csrfToken()) ?>"
             >
 
-
             <?php if (!$estaPago): ?>
 
                 <label>
@@ -498,7 +550,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 </label>
 
-
                 <label>
 
                     Inscrição
@@ -512,7 +563,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     >
 
                 </label>
-
 
                 <label>
 
@@ -529,7 +579,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 </label>
 
-
                 <label>
 
                     Valor negociado
@@ -537,7 +586,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input
                         type="number"
                         name="valor_negociado"
-                        value="<?= e($atendimento['valor_negociado']) ?>"
+                        value="<?= e((string)$atendimento['valor_negociado']) ?>"
                         min="0.01"
                         step="0.01"
                         required
@@ -556,7 +605,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <?php endif; ?>
 
-
             <label>
 
                 Observações
@@ -567,7 +615,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ><?= e($atendimento['observacoes'] ?? '') ?></textarea>
 
             </label>
-
 
             <div>
 
@@ -580,7 +627,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         : 'Salvar alterações'
                     ?>
                 </button>
-
 
                 <a
                     href="atendimentos.php"

@@ -1,3 +1,4 @@
+
 <?php
 
 require_once __DIR__ . '/config/bootstrap.php';
@@ -15,7 +16,6 @@ $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
 if ($id <= 0) {
     die('Atendimento inválido.');
 }
-
 
 /*
 |--------------------------------------------------------------------------
@@ -42,7 +42,6 @@ if (!$atendimento) {
     die('Atendimento não encontrado.');
 }
 
-
 /*
 |--------------------------------------------------------------------------
 | Verifica permissão
@@ -57,7 +56,6 @@ if (
     exit('Você não tem permissão para registrar pagamento deste atendimento.');
 }
 
-
 /*
 |--------------------------------------------------------------------------
 | Verifica se já existe pagamento
@@ -70,7 +68,6 @@ if (
 ) {
     $erro = 'Este atendimento já possui um pagamento registrado.';
 }
-
 
 /*
 |--------------------------------------------------------------------------
@@ -89,96 +86,132 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
 
         $erro = 'Informe uma data de pagamento válida.';
 
-    } elseif ($valorRecebido <= 0) {
+    } elseif (!is_numeric($_POST['valor_recebido'] ?? null) || $valorRecebido <= 0) {
 
         $erro = 'O valor recebido deve ser maior que zero.';
 
     } else {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Salva o pagamento
-        |--------------------------------------------------------------------------
-        */
-
-        $stmt = $pdo->prepare("
-            UPDATE atendimentos
-            SET
-                valor_recebido = ?,
-                data_pagamento = ?
-            WHERE id = ?
-              AND valor_recebido IS NULL
-              AND data_pagamento IS NULL
-        ");
-
-        $stmt->execute([
-            $valorRecebido,
-            $dataPagamento,
-            $id
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Verifica se realmente foi atualizado
-        |--------------------------------------------------------------------------
-        */
-
-        if ($stmt->rowCount() !== 1) {
-
-            $erro = 'Não foi possível registrar o pagamento. O atendimento pode já possuir um pagamento.';
-
-        } else {
+        try {
 
             /*
             |--------------------------------------------------------------------------
-            | Dados novos para auditoria
+            | Inicia a transação
             |--------------------------------------------------------------------------
             */
 
-            $dadosNovos = [
-                'valor_recebido' => $valorRecebido,
-                'data_pagamento' => $dataPagamento
-            ];
-
+            $pdo->beginTransaction();
 
             /*
             |--------------------------------------------------------------------------
-            | Auditoria
-            |--------------------------------------------------------------------------
-            */
-
-            registrarAuditoria(
-                'PAGAMENTO',
-                'atendimentos',
-                $id,
-                null,
-                $dadosNovos
-            );
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Atualiza os dados exibidos
+            | Salva o pagamento
             |--------------------------------------------------------------------------
             */
 
             $stmt = $pdo->prepare("
-                SELECT
-                    a.*,
-                    u.nome AS usuario_nome
-                FROM atendimentos a
-                INNER JOIN usuarios u
-                    ON u.id = a.usuario_id
-                WHERE a.id = ?
-                LIMIT 1
+                UPDATE atendimentos
+                SET
+                    valor_recebido = ?,
+                    data_pagamento = ?
+                WHERE id = ?
+                  AND valor_recebido IS NULL
+                  AND data_pagamento IS NULL
             ");
 
-            $stmt->execute([$id]);
+            $stmt->execute([
+                $valorRecebido,
+                $dataPagamento,
+                $id
+            ]);
 
-            $atendimento = $stmt->fetch();
+            /*
+            |--------------------------------------------------------------------------
+            | Verifica se o pagamento foi atualizado
+            |--------------------------------------------------------------------------
+            */
 
-            $ok = 'Pagamento registrado com sucesso.';
+            if ($stmt->rowCount() !== 1) {
+
+                $pdo->rollBack();
+
+                $erro = 'Não foi possível registrar o pagamento. O atendimento pode já possuir um pagamento.';
+
+            } else {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Dados novos para auditoria
+                |--------------------------------------------------------------------------
+                */
+
+                $dadosNovos = [
+                    'valor_recebido' => $valorRecebido,
+                    'data_pagamento' => $dataPagamento
+                ];
+
+                /*
+                |--------------------------------------------------------------------------
+                | Registra a auditoria na mesma transação
+                |--------------------------------------------------------------------------
+                */
+
+                registrarAuditoria(
+                    'PAGAR',
+                    'atendimentos',
+                    (int)$id,
+                    null,
+                    $dadosNovos
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Confirma o pagamento e a auditoria juntos
+                |--------------------------------------------------------------------------
+                */
+
+                $pdo->commit();
+
+                /*
+                |--------------------------------------------------------------------------
+                | Atualiza os dados exibidos
+                |--------------------------------------------------------------------------
+                */
+
+                $stmt = $pdo->prepare("
+                    SELECT
+                        a.*,
+                        u.nome AS usuario_nome
+                    FROM atendimentos a
+                    INNER JOIN usuarios u
+                        ON u.id = a.usuario_id
+                    WHERE a.id = ?
+                    LIMIT 1
+                ");
+
+                $stmt->execute([$id]);
+
+                $atendimento = $stmt->fetch();
+
+                $ok = 'Pagamento registrado com sucesso.';
+            }
+
+        } catch (Throwable $e) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Desfaz a transação se alguma operação falhar
+            |--------------------------------------------------------------------------
+            */
+
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            error_log(
+                'Erro ao registrar pagamento: ' . $e->getMessage()
+            );
+
+            $erro = 'Não foi possível registrar o pagamento. Nenhuma alteração foi salva. Tente novamente.';
         }
     }
 }
@@ -245,7 +278,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
 
 </header>
 
-
 <main class="container">
 
     <div class="head">
@@ -269,7 +301,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
 
     </div>
 
-
     <?php if ($erro): ?>
 
         <div class="panel">
@@ -283,7 +314,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
 
     <?php endif; ?>
 
-
     <?php if ($ok): ?>
 
         <div class="panel">
@@ -295,7 +325,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
         </div>
 
     <?php endif; ?>
-
 
     <section class="panel">
 
@@ -328,7 +357,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
 
     </section>
 
-
     <?php if (
         $atendimento['valor_recebido'] === null &&
         $atendimento['data_pagamento'] === null
@@ -352,7 +380,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
                     value="<?= e(csrfToken()) ?>"
                 >
 
-
                 <label>
 
                     Data do pagamento
@@ -365,7 +392,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
                     >
 
                 </label>
-
 
                 <label>
 
@@ -381,7 +407,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
                     >
 
                 </label>
-
 
                 <div>
 

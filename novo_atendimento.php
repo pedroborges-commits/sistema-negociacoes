@@ -1,3 +1,4 @@
+
 <?php
 
 require_once __DIR__ . '/config/bootstrap.php';
@@ -20,8 +21,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     validarCsrf();
 
-    $parcelasInt = (int)$parcelas;
-    $valor = (float)$valorNegociado;
+    /*
+    |--------------------------------------------------------------------------
+    | Valida os dados recebidos
+    |--------------------------------------------------------------------------
+    */
+
+    $parcelasInt = filter_var(
+        $parcelas,
+        FILTER_VALIDATE_INT
+    );
+
+    $valor = is_numeric($valorNegociado)
+        ? (float)$valorNegociado
+        : 0;
 
     if (!validarData($data)) {
 
@@ -31,38 +44,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $erro = 'Informe a inscrição.';
 
-    } elseif ($parcelasInt < 1) {
+    } elseif (
+        $parcelasInt === false ||
+        $parcelasInt < 1
+    ) {
 
-        $erro = 'A quantidade de parcelas em atraso deve ser de pelo menos 1.';
+        $erro = 'A quantidade de parcelas em atraso deve ser um número inteiro de pelo menos 1.';
 
-    } elseif ($valor <= 0) {
+    } elseif (
+        !is_numeric($valorNegociado) ||
+        !is_finite($valor) ||
+        $valor <= 0
+    ) {
 
         $erro = 'O valor negociado deve ser maior que zero.';
 
     } else {
 
-        $s = $pdo->prepare("
-            INSERT INTO atendimentos (
-                usuario_id,
-                data_atendimento,
-                inscricao,
-                parcelas_em_atraso,
-                valor_negociado,
-                observacoes
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
-
-        $s->execute([
-            $u['id'],
-            $data,
-            $inscricao,
-            $parcelasInt,
-            $valor,
-            $observacoes !== '' ? $observacoes : null
-        ]);
-
-        $atendimentoId = (int)$pdo->lastInsertId();
+        /*
+        |--------------------------------------------------------------------------
+        | Prepara os dados do atendimento
+        |--------------------------------------------------------------------------
+        */
 
         $dadosNovos = [
             'usuario_id' => (int)$u['id'],
@@ -70,25 +73,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'inscricao' => $inscricao,
             'parcelas_em_atraso' => $parcelasInt,
             'valor_negociado' => $valor,
-            'observacoes' => $observacoes !== '' ? $observacoes : null
+            'observacoes' => $observacoes !== ''
+                ? $observacoes
+                : null
         ];
 
-        registrarAuditoria(
-            'CRIAR',
-            'atendimentos',
-            $atendimentoId,
-            null,
-            $dadosNovos
-        );
+        try {
 
-        $ok = 'Atendimento registrado com sucesso.';
+            /*
+            |--------------------------------------------------------------------------
+            | Inicia a transação
+            |--------------------------------------------------------------------------
+            */
 
-        // Limpa os campos após o cadastro
-        $inscricao = '';
-        $parcelas = '';
-        $valorNegociado = '';
-        $observacoes = '';
-        $data = date('Y-m-d');
+            $pdo->beginTransaction();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Cadastra o atendimento
+            |--------------------------------------------------------------------------
+            */
+
+            $s = $pdo->prepare("
+                INSERT INTO atendimentos (
+                    usuario_id,
+                    data_atendimento,
+                    inscricao,
+                    parcelas_em_atraso,
+                    valor_negociado,
+                    observacoes
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+
+            $s->execute([
+                $dadosNovos['usuario_id'],
+                $dadosNovos['data_atendimento'],
+                $dadosNovos['inscricao'],
+                $dadosNovos['parcelas_em_atraso'],
+                $dadosNovos['valor_negociado'],
+                $dadosNovos['observacoes']
+            ]);
+
+            $atendimentoId = (int)$pdo->lastInsertId();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Registra a auditoria na mesma transação
+            |--------------------------------------------------------------------------
+            */
+
+            registrarAuditoria(
+                'CRIAR',
+                'atendimentos',
+                $atendimentoId,
+                null,
+                $dadosNovos
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Confirma o cadastro e a auditoria juntos
+            |--------------------------------------------------------------------------
+            */
+
+            $pdo->commit();
+
+            $ok = 'Atendimento registrado com sucesso.';
+
+            /*
+            |--------------------------------------------------------------------------
+            | Limpa os campos após o cadastro
+            |--------------------------------------------------------------------------
+            */
+
+            $data = date('Y-m-d');
+            $inscricao = '';
+            $parcelas = '';
+            $valorNegociado = '';
+            $observacoes = '';
+
+        } catch (Throwable $e) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Desfaz o cadastro se alguma operação falhar
+            |--------------------------------------------------------------------------
+            */
+
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            error_log(
+                'Erro ao cadastrar atendimento: ' . $e->getMessage()
+            );
+
+            $erro = 'Não foi possível registrar o atendimento. Nenhuma alteração foi confirmada. Tente novamente.';
+        }
     }
 }
 
@@ -168,7 +250,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php endif; ?>
 
-
     <form class="panel form" method="post">
 
         <input
@@ -176,7 +257,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             name="csrf_token"
             value="<?= e(csrfToken()) ?>"
         >
-
 
         <label>
 
@@ -191,7 +271,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </label>
 
-
         <label>
 
             Inscrição
@@ -205,7 +284,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             >
 
         </label>
-
 
         <label>
 
@@ -222,7 +300,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </label>
 
-
         <label>
 
             Valor negociado
@@ -238,7 +315,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </label>
 
-
         <label class="wide">
 
             Observações
@@ -249,7 +325,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ><?= e($observacoes) ?></textarea>
 
         </label>
-
 
         <div class="wide">
 
