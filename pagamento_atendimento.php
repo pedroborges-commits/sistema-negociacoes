@@ -2,6 +2,7 @@
 <?php
 
 require_once __DIR__ . '/config/bootstrap.php';
+require_once __DIR__ . '/config/comprovantes.php';
 
 exigirLogin();
 
@@ -80,138 +81,261 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
     validarCsrf();
 
     $dataPagamento = $_POST['data_pagamento'] ?? '';
-    $valorRecebido = (float)($_POST['valor_recebido'] ?? 0);
+    $valorTexto = trim((string)($_POST['valor_recebido'] ?? ''));
+    $valorRecebido = (float)$valorTexto;
+
+    $arquivoSalvo = null;
+    $nomeArquivo = null;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Valida os campos
+    |--------------------------------------------------------------------------
+    */
 
     if (!validarData($dataPagamento)) {
 
         $erro = 'Informe uma data de pagamento válida.';
 
-    } elseif (!is_numeric($_POST['valor_recebido'] ?? null) || $valorRecebido <= 0) {
+    } elseif (
+        !is_numeric($valorTexto) ||
+        !is_finite($valorRecebido) ||
+        $valorRecebido <= 0
+    ) {
 
         $erro = 'O valor recebido deve ser maior que zero.';
 
+    } elseif (
+        !isset($_FILES['comprovante']) ||
+        !is_array($_FILES['comprovante'])
+    ) {
+
+        $erro = 'O comprovante de pagamento é obrigatório.';
+
     } else {
 
-        try {
+        $arquivo = $_FILES['comprovante'];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Verifica erros do upload
+        |--------------------------------------------------------------------------
+        */
+
+        if ($arquivo['error'] === UPLOAD_ERR_NO_FILE) {
+
+            $erro = 'Anexe o comprovante de pagamento.';
+
+        } elseif ($arquivo['error'] !== UPLOAD_ERR_OK) {
+
+            $erro = 'Ocorreu um erro no envio do comprovante. Verifique o arquivo e tente novamente.';
+
+        } elseif (
+            !is_uploaded_file($arquivo['tmp_name'])
+        ) {
+
+            $erro = 'O arquivo enviado não é válido.';
+
+        } elseif (
+            $arquivo['size'] <= 0 ||
+            $arquivo['size'] > TAMANHO_MAXIMO_COMPROVANTE
+        ) {
+
+            $erro = 'O comprovante deve ter no máximo 5 MB.';
+
+        } elseif (
+            !is_dir(DIRETORIO_COMPROVANTES) ||
+            !is_writable(DIRETORIO_COMPROVANTES)
+        ) {
+
+            $erro = 'A pasta de comprovantes não existe ou não possui permissão de gravação.';
+
+        } else {
 
             /*
             |--------------------------------------------------------------------------
-            | Inicia a transação
+            | Verifica o tipo real do arquivo
             |--------------------------------------------------------------------------
             */
 
-            $pdo->beginTransaction();
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
 
-            /*
-            |--------------------------------------------------------------------------
-            | Salva o pagamento
-            |--------------------------------------------------------------------------
-            */
+            $tipoArquivo = $finfo->file($arquivo['tmp_name']);
 
-            $stmt = $pdo->prepare("
-                UPDATE atendimentos
-                SET
-                    valor_recebido = ?,
-                    data_pagamento = ?
-                WHERE id = ?
-                  AND valor_recebido IS NULL
-                  AND data_pagamento IS NULL
-            ");
+            $extensao = TIPOS_COMPROVANTES[$tipoArquivo] ?? null;
 
-            $stmt->execute([
-                $valorRecebido,
-                $dataPagamento,
-                $id
-            ]);
+            if ($extensao === null) {
 
-            /*
-            |--------------------------------------------------------------------------
-            | Verifica se o pagamento foi atualizado
-            |--------------------------------------------------------------------------
-            */
-
-            if ($stmt->rowCount() !== 1) {
-
-                $pdo->rollBack();
-
-                $erro = 'Não foi possível registrar o pagamento. O atendimento pode já possuir um pagamento.';
+                $erro = 'Formato inválido. Envie um arquivo PDF, JPG ou PNG.';
 
             } else {
 
                 /*
                 |--------------------------------------------------------------------------
-                | Dados novos para auditoria
+                | Gera um nome aleatório para o arquivo
                 |--------------------------------------------------------------------------
                 */
 
-                $dadosNovos = [
-                    'valor_recebido' => $valorRecebido,
-                    'data_pagamento' => $dataPagamento
-                ];
+                try {
 
-                /*
-                |--------------------------------------------------------------------------
-                | Registra a auditoria na mesma transação
-                |--------------------------------------------------------------------------
-                */
+                    $nomeArquivo = bin2hex(random_bytes(16))
+                        . '.'
+                        . $extensao;
 
-                registrarAuditoria(
-                    'PAGAR',
-                    'atendimentos',
-                    (int)$id,
-                    null,
-                    $dadosNovos
-                );
+                    $destino = DIRETORIO_COMPROVANTES
+                        . DIRECTORY_SEPARATOR
+                        . $nomeArquivo;
 
-                /*
-                |--------------------------------------------------------------------------
-                | Confirma o pagamento e a auditoria juntos
-                |--------------------------------------------------------------------------
-                */
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Inicia a transação
+                    |--------------------------------------------------------------------------
+                    */
 
-                $pdo->commit();
+                    $pdo->beginTransaction();
 
-                /*
-                |--------------------------------------------------------------------------
-                | Atualiza os dados exibidos
-                |--------------------------------------------------------------------------
-                */
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Salva o comprovante
+                    |--------------------------------------------------------------------------
+                    */
 
-                $stmt = $pdo->prepare("
-                    SELECT
-                        a.*,
-                        u.nome AS usuario_nome
-                    FROM atendimentos a
-                    INNER JOIN usuarios u
-                        ON u.id = a.usuario_id
-                    WHERE a.id = ?
-                    LIMIT 1
-                ");
+                    if (!move_uploaded_file(
+                        $arquivo['tmp_name'],
+                        $destino
+                    )) {
+                        throw new RuntimeException(
+                            'Não foi possível salvar o comprovante.'
+                        );
+                    }
 
-                $stmt->execute([$id]);
+                    $arquivoSalvo = $destino;
 
-                $atendimento = $stmt->fetch();
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Atualiza o pagamento
+                    |--------------------------------------------------------------------------
+                    */
 
-                $ok = 'Pagamento registrado com sucesso.';
+                    $stmt = $pdo->prepare("
+                        UPDATE atendimentos
+                        SET
+                            valor_recebido = ?,
+                            data_pagamento = ?,
+                            comprovante = ?
+                        WHERE id = ?
+                          AND valor_recebido IS NULL
+                          AND data_pagamento IS NULL
+                          AND comprovante IS NULL
+                    ");
+
+                    $stmt->execute([
+                        $valorRecebido,
+                        $dataPagamento,
+                        $nomeArquivo,
+                        $id
+                    ]);
+
+                    if ($stmt->rowCount() !== 1) {
+
+                        $pdo->rollBack();
+
+                        if ($arquivoSalvo !== null && is_file($arquivoSalvo)) {
+                            unlink($arquivoSalvo);
+                        }
+
+                        $arquivoSalvo = null;
+
+                        $erro = 'Não foi possível registrar o pagamento. O atendimento pode já possuir um pagamento.';
+
+                    } else {
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Dados para auditoria
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $dadosNovos = [
+                            'valor_recebido' => $valorRecebido,
+                            'data_pagamento' => $dataPagamento,
+                            'comprovante' => $nomeArquivo
+                        ];
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Registra auditoria na mesma transação
+                        |--------------------------------------------------------------------------
+                        */
+
+                        registrarAuditoria(
+                            'PAGAR',
+                            'atendimentos',
+                            (int)$id,
+                            null,
+                            $dadosNovos
+                        );
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Confirma o pagamento
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $pdo->commit();
+
+                        $arquivoSalvo = null;
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Atualiza os dados exibidos
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $stmt = $pdo->prepare("
+                            SELECT
+                                a.*,
+                                u.nome AS usuario_nome
+                            FROM atendimentos a
+                            INNER JOIN usuarios u
+                                ON u.id = a.usuario_id
+                            WHERE a.id = ?
+                            LIMIT 1
+                        ");
+
+                        $stmt->execute([$id]);
+
+                        $atendimento = $stmt->fetch();
+
+                        $ok = 'Pagamento registrado com sucesso.';
+                    }
+
+                } catch (Throwable $e) {
+
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Remove arquivo caso a operação falhe
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        $arquivoSalvo !== null &&
+                        is_file($arquivoSalvo)
+                    ) {
+                        unlink($arquivoSalvo);
+                    }
+
+                    error_log(
+                        'Erro ao registrar pagamento: ' . $e->getMessage()
+                    );
+
+                    $erro = 'Não foi possível registrar o pagamento. Nenhuma alteração foi salva. Tente novamente.';
+                }
             }
-
-        } catch (Throwable $e) {
-
-            /*
-            |--------------------------------------------------------------------------
-            | Desfaz a transação se alguma operação falhar
-            |--------------------------------------------------------------------------
-            */
-
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-
-            error_log(
-                'Erro ao registrar pagamento: ' . $e->getMessage()
-            );
-
-            $erro = 'Não foi possível registrar o pagamento. Nenhuma alteração foi salva. Tente novamente.';
         }
     }
 }
@@ -366,7 +490,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
 
             <h2>Dados do pagamento</h2>
 
-            <form method="post">
+            <form
+                method="post"
+                enctype="multipart/form-data"
+            >
 
                 <input
                     type="hidden"
@@ -408,6 +535,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
 
                 </label>
 
+                <label>
+
+                    Comprovante de pagamento (obrigatório)
+
+                    <input
+                        type="file"
+                        name="comprovante"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        required
+                    >
+
+                    <small>
+                        Formatos permitidos: PDF, JPG e PNG.
+                        Tamanho máximo: 5 MB.
+                    </small>
+
+                </label>
+
                 <div>
 
                     <button
@@ -437,19 +582,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
             <h2>Pagamento registrado</h2>
 
             <p>
-
                 <strong>Data do pagamento:</strong>
-
                 <?= e($atendimento['data_pagamento']) ?>
-
             </p>
 
             <p>
-
                 <strong>Valor recebido:</strong>
-
                 <?= dinheiro($atendimento['valor_recebido']) ?>
+            </p>
 
+            <p>
+                <strong>Comprovante:</strong>
+                Anexado ao atendimento.
             </p>
 
         </section>

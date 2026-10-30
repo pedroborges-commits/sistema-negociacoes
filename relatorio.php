@@ -267,7 +267,17 @@ foreach ($rows as $row) {
         </button>
 
     </form>
-
+<div style="margin: 16px 0;">
+    <a
+        href="exportar_relatorio.php?<?= e(http_build_query([
+            'mes' => $mes,
+            'responsavel' => $responsavelId
+        ])) ?>"
+        class="button"
+    >
+        Exportar para Excel
+    </a>
+</div>
 
     <!--
     |--------------------------------------------------------------------------

@@ -73,6 +73,7 @@ $sql = "
         a.valor_negociado,
         a.valor_recebido,
         a.data_pagamento,
+        a.comprovante,
         a.observacoes,
         u.nome AS usuario_nome
 
@@ -491,7 +492,11 @@ if ($erroFiltro === '') {
                             <th>
                                 Data pagamento
                             </th>
-
+                            
+                            <th>
+                                Comprovante
+                            </th>
+                            
                             <th>
                                 Operadora
                             </th>
@@ -574,6 +579,24 @@ if ($erroFiltro === '') {
 
                             </td>
 
+                            <td>
+                             <?php if (!empty($a['comprovante'])): ?>
+
+                                <a
+                                    class="button secondary"
+                                    href="comprovante_atendimento.php?id=<?= (int)$a['id'] ?>"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Consultar comprovante
+                                </a>
+
+                            <?php else: ?>
+
+                                —
+
+                            <?php endif; ?>
+                        </td>
 
                             <td>
                                 <?= e($a['usuario_nome']) ?>
