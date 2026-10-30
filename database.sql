@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS atendimentos (
 
     data_pagamento DATE NULL,
 
+    comprovante VARCHAR(255) NULL,
+
     observacoes TEXT NULL,
 
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -79,7 +81,6 @@ CREATE TABLE IF NOT EXISTS atendimentos (
     INDEX idx_atendimento_inscricao (inscricao),
     INDEX idx_atendimento_usuario (usuario_id)
 ) ENGINE=InnoDB;
-
 
 
 -- =========================================================
