@@ -39,183 +39,299 @@ $usuarios = $stmt->fetchAll();
 
     <link
         rel="stylesheet"
-        href="assets/style.css"
+        href="/sistema-negociacoes-redesign/assets/style.css?v=2"
     >
 </head>
 
-<body>
+<body class="dashboard-page">
 
-<header class="topbar">
+<div class="dashboard-layout">
 
-    <div>
-        <strong>Sistema de Negociações</strong>
-    </div>
+    <!-- MENU LATERAL -->
+    <aside class="sidebar">
 
-    <div>
+        <div class="sidebar-brand">
+            <div class="brand-symbol">N</div>
 
-        <span>
-            <?= e($usuarioAtual['nome']) ?>
-            (<?= e($usuarioAtual['perfil']) ?>)
-        </span>
+            <div>
+                <strong>Negociações</strong>
+                <span>Sistema de gestão</span>
+            </div>
+        </div>
 
-        <a href="index.php">Início</a>
+        <div class="sidebar-section-label">MENU PRINCIPAL</div>
 
-        <form
-            method="post"
-            action="logout.php"
-            style="display:inline;"
-        >
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
+        <nav class="sidebar-nav">
 
-            <button type="submit">
-                Sair
-            </button>
-        </form>
+            <a href="index.php" class="sidebar-link">
+                <span class="nav-icon">⌂</span>
+                <span>Painel</span>
+            </a>
 
-    </div>
+            <a href="novo_atendimento.php" class="sidebar-link">
+                <span class="nav-icon">＋</span>
+                <span>Novo atendimento</span>
+            </a>
 
-</header>
-
-<main class="container">
-
-    <h1>Gerenciamento de usuários</h1>
-    <a
-    href="novo_usuario.php"
-    class="button"
->
-    + Novo usuário
+            <a href="atendimentos.php" class="sidebar-link">
+                <span class="nav-icon">▤</span>
+                <span>Atendimentos</span>
+            </a>
+            <a href="minha_conta.php" class="sidebar-link">
+    <span class="nav-icon">⚙</span>
+    <span>Minha conta</span>
 </a>
 
-    <section class="panel">
+            <div class="sidebar-section-label">GESTÃO</div>
 
-        <h2>Usuários cadastrados</h2>
+            <a href="relatorio.php" class="sidebar-link">
+                <span class="nav-icon">▥</span>
+                <span>Relatórios</span>
+            </a>
 
-        <?php if (count($usuarios) === 0): ?>
+            <a href="usuarios.php" class="sidebar-link active">
+                <span class="nav-icon">♙</span>
+                <span>Usuários</span>
+            </a>
 
-            <p>Nenhum usuário cadastrado.</p>
+            <a href="auditoria.php" class="sidebar-link">
+                <span class="nav-icon">◷</span>
+                <span>Auditoria</span>
+            </a>
 
-        <?php else: ?>
+        </nav>
 
-            <div style="overflow-x:auto;">
+        <div class="sidebar-bottom">
 
-               <table>
+            <div class="sidebar-user">
 
-    <thead>
+                <div class="user-avatar">
+                    <?= e(mb_strtoupper(mb_substr($usuarioAtual['nome'], 0, 1, 'UTF-8'), 'UTF-8')) ?>
+                </div>
 
-        <tr>
-            <th>Nome</th>
-            <th>E-mail</th>
-            <th>Perfil</th>
-            <th>Status</th>
-            <th>Criado em</th>
-            <th>Ações</th>
-        </tr>
-
-    </thead>
-
-    <tbody>
-
-        <?php foreach ($usuarios as $usuario): ?>
-
-            <tr>
-
-                <td>
-                    <?= e($usuario['nome']) ?>
-                </td>
-
-                <td>
-                    <?= e($usuario['email']) ?>
-                </td>
-
-                <td>
-                    <?= e($usuario['perfil']) ?>
-                </td>
-
-                <td>
-                    <?php if ((int)$usuario['ativo'] === 1): ?>
-
-                        Ativo
-
-                    <?php else: ?>
-
-                        Inativo
-
-                    <?php endif; ?>
-                </td>
-
-                <td>
-                    <?= e($usuario['criado_em']) ?>
-                </td>
-
-                <td>
-
-    <a
-        href="editar_usuario.php?id=<?= (int)$usuario['id'] ?>"
-        class="button secondary"
-    >
-        Editar
-    </a>
-
-    <?php if ((int)$usuario['id'] !== (int)$usuarioAtual['id']): ?>
-
-        <a
-            href="redefinir_senha_usuario.php?id=<?= (int)$usuario['id'] ?>"
-            class="button secondary"
-        >
-            Redefinir senha
-        </a>
-
-        <form
-            method="POST"
-            action="alternar_status_usuario.php"
-            style="display:inline;"
-        >
-
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
-
-            <input
-                type="hidden"
-                name="id"
-                value="<?= (int)$usuario['id'] ?>"
-            >
-
-            <button type="submit">
-                <?= (int)$usuario['ativo'] === 1
-                    ? 'Desativar'
-                    : 'Ativar'
-                ?>
-            </button>
-
-        </form>
-
-    <?php endif; ?>
-
-</td>
-
-            </tr>
-
-        <?php endforeach; ?>
-
-    </tbody>
-
-</table>
+                <div class="user-info">
+                    <strong><?= e($usuarioAtual['nome']) ?></strong>
+                    <span><?= e($usuarioAtual['perfil']) ?></span>
+                </div>
 
             </div>
 
-        <?php endif; ?>
+            <form method="POST" action="logout.php">
 
-    </section>
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= e(csrfToken()) ?>"
+                >
 
-</main>
+                <button type="submit" class="logout-button">
+                    <span>↪</span>
+                    Sair do sistema
+                </button>
+
+            </form>
+
+        </div>
+
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="dashboard-main">
+
+        <div class="dashboard-content">
+
+            <!-- CABEÇALHO -->
+            <section class="dashboard-welcome users-page-welcome">
+
+                <div>
+                    <span class="welcome-label">GESTÃO</span>
+
+                    <h1 class="welcome-text">
+                        Gerenciamento de usuários
+                    </h1>
+
+                    <p>
+                        Gerencie os acessos e as permissões dos usuários do sistema.
+                    </p>
+                </div>
+
+                <a
+                    href="novo_usuario.php"
+                    class="users-new-button"
+                >
+                    <span>＋</span>
+                    Novo usuário
+                </a>
+
+            </section>
+
+            <!-- LISTAGEM DE USUÁRIOS -->
+            <section class="panel users-list-panel">
+
+                <div class="users-section-heading">
+
+                    <div>
+                        <h2>Usuários cadastrados</h2>
+
+                        <p>
+                            <?= count($usuarios) ?>
+                            <?= count($usuarios) === 1 ? 'usuário cadastrado' : 'usuários cadastrados' ?>
+                        </p>
+                    </div>
+
+                </div>
+
+                <?php if (count($usuarios) === 0): ?>
+
+                    <div class="users-empty">
+                        <span class="users-empty-icon">♙</span>
+                        <strong>Nenhum usuário cadastrado</strong>
+                        <p>Não existem usuários para exibir.</p>
+                    </div>
+
+                <?php else: ?>
+
+                    <div class="users-table-wrapper">
+
+                        <table class="users-table">
+
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>E-mail</th>
+                                    <th>Perfil</th>
+                                    <th>Status</th>
+                                    <th>Criado em</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                <?php foreach ($usuarios as $usuario): ?>
+
+                                    <tr>
+
+                                        <td>
+                                            <div class="users-name-cell">
+                                                <div class="users-avatar">
+                                                    <?= e(mb_strtoupper(mb_substr($usuario['nome'], 0, 1, 'UTF-8'), 'UTF-8')) ?>
+                                                </div>
+
+                                                <strong>
+                                                    <?= e($usuario['nome']) ?>
+                                                </strong>
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            <?= e($usuario['email']) ?>
+                                        </td>
+
+                                        <td>
+                                            <span class="users-role">
+                                                <?= e($usuario['perfil']) ?>
+                                            </span>
+                                        </td>
+
+                                        <td>
+
+                                            <?php if ((int)$usuario['ativo'] === 1): ?>
+
+                                                <span class="users-status active">
+                                                    <span></span>
+                                                    Ativo
+                                                </span>
+
+                                            <?php else: ?>
+
+                                                <span class="users-status inactive">
+                                                    <span></span>
+                                                    Inativo
+                                                </span>
+
+                                            <?php endif; ?>
+
+                                        </td>
+
+                                        <td>
+                                            <?= e(date('d/m/Y', strtotime($usuario['criado_em']))) ?>
+                                        </td>
+
+                                        <td>
+
+                                            <div class="users-actions">
+
+                                                <a
+                                                    href="editar_usuario.php?id=<?= (int)$usuario['id'] ?>"
+                                                    class="users-action-button edit"
+                                                >
+                                                    Editar
+                                                </a>
+
+                                                <?php if ((int)$usuario['id'] !== (int)$usuarioAtual['id']): ?>
+
+                                                    <a
+                                                        href="redefinir_senha_usuario.php?id=<?= (int)$usuario['id'] ?>"
+                                                        class="users-action-button password"
+                                                    >
+                                                        Redefinir senha
+                                                    </a>
+
+                                                    <form
+                                                        method="POST"
+                                                        action="alternar_status_usuario.php"
+                                                    >
+
+                                                        <input
+                                                            type="hidden"
+                                                            name="csrf_token"
+                                                            value="<?= e(csrfToken()) ?>"
+                                                        >
+
+                                                        <input
+                                                            type="hidden"
+                                                            name="id"
+                                                            value="<?= (int)$usuario['id'] ?>"
+                                                        >
+
+                                                        <button
+                                                            type="submit"
+                                                            class="users-action-button <?= (int)$usuario['ativo'] === 1 ? 'deactivate' : 'activate' ?>"
+                                                        >
+                                                            <?= (int)$usuario['ativo'] === 1
+                                                                ? 'Desativar'
+                                                                : 'Ativar'
+                                                            ?>
+                                                        </button>
+
+                                                    </form>
+
+                                                <?php endif; ?>
+
+                                            </div>
+
+                                        </td>
+
+                                    </tr>
+
+                                <?php endforeach; ?>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                <?php endif; ?>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
 
 </body>
-
 </html>

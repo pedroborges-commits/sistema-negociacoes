@@ -405,244 +405,327 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 ?>
 
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
-
-    <meta charset="utf-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1"
-    >
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>
         <?= $estaPago ? 'Editar observação' : 'Editar atendimento' ?>
     </title>
 
-    <link
-        rel="stylesheet"
-        href="assets/style.css"
-    >
-
+    <link rel="stylesheet" href="assets/style.css?v=3">
 </head>
 
-<body>
+<body class="dashboard-page">
 
-<header class="topbar">
+<div class="dashboard-layout">
 
-    <strong>Sistema de Negociações</strong>
+    <aside class="sidebar">
 
-    <span>
+        <div class="sidebar-brand">
+            <div class="brand-symbol">N</div>
 
-        <?= e($u['nome']) ?> ·
+            <div>
+                <strong>Negociações</strong>
+                <span>Sistema de gestão</span>
+            </div>
+        </div>
 
-        <form
-            method="POST"
-            action="logout.php"
-            style="display:inline;"
-        >
+        <div class="sidebar-section-label">MENU PRINCIPAL</div>
 
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
+        <nav class="sidebar-nav">
 
-            <button type="submit">
-                Sair
-            </button>
+            <a href="index.php" class="sidebar-link">
+                <span class="nav-icon">⌂</span>
+                <span>Painel</span>
+            </a>
 
-        </form>
+            <a href="novo_atendimento.php" class="sidebar-link">
+                <span class="nav-icon">＋</span>
+                <span>Novo atendimento</span>
+            </a>
 
-    </span>
+            <a href="atendimentos.php" class="sidebar-link active">
+                <span class="nav-icon">▤</span>
+                <span>Atendimentos</span>
+                <a href="minha_conta.php" class="sidebar-link">
+    <span class="nav-icon">⚙</span>
+    <span>Minha conta</span>
+</a>
+            </a>
 
-</header>
+            <?php if (in_array($u['perfil'], ['ADMIN', 'SUPERVISOR'], true)): ?>
 
-<main class="container">
+                <div class="sidebar-section-label">GESTÃO</div>
 
-    <div class="head">
+                <a href="relatorio.php" class="sidebar-link">
+                    <span class="nav-icon">▥</span>
+                    <span>Relatórios</span>
+                </a>
 
-        <div>
+            <?php endif; ?>
 
-            <h1>
-                <?= $estaPago ? 'Editar observação' : 'Editar atendimento' ?>
-            </h1>
+            <?php if ($u['perfil'] === 'ADMIN'): ?>
 
-            <p>
+                <a href="usuarios.php" class="sidebar-link">
+                    <span class="nav-icon">♙</span>
+                    <span>Usuários</span>
+                </a>
 
-                <?php if ($estaPago): ?>
+                <a href="auditoria.php" class="sidebar-link">
+                    <span class="nav-icon">◷</span>
+                    <span>Auditoria</span>
+                </a>
 
-                    Este atendimento já foi pago.
-                    Apenas a observação pode ser alterada.
+            <?php endif; ?>
 
-                <?php else: ?>
+        </nav>
 
-                    Altere os dados do atendimento conforme necessário.
+        <div class="sidebar-bottom">
 
-                <?php endif; ?>
+            <div class="sidebar-user">
 
-            </p>
+                <div class="user-avatar">
+                    <?= e(mb_strtoupper(mb_substr($u['nome'], 0, 1, 'UTF-8'), 'UTF-8')) ?>
+                </div>
+
+                <div class="user-info">
+                    <strong><?= e($u['nome']) ?></strong>
+                    <span><?= e($u['perfil']) ?></span>
+                </div>
+
+            </div>
+
+            <form method="POST" action="logout.php">
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= e(csrfToken()) ?>"
+                >
+
+                <button type="submit" class="logout-button">
+                    <span>↪</span>
+                    Sair do sistema
+                </button>
+
+            </form>
 
         </div>
 
-        <a
-            class="button secondary"
-            href="atendimentos.php"
-        >
-            Voltar
-        </a>
+    </aside>
 
-    </div>
+    <main class="dashboard-main">
 
-    <?php if ($erro): ?>
+        <div class="dashboard-content">
 
-        <div class="panel">
+            <header class="edit-page-header">
 
-            <p>
-                <strong>Erro:</strong>
-                <?= e($erro) ?>
-            </p>
+                <div>
+                    <h1>
+                        <?= $estaPago ? 'Editar observação' : 'Editar atendimento' ?>
+                    </h1>
 
-        </div>
+                    <p>
+                        <?php if ($estaPago): ?>
 
-    <?php elseif ($ok): ?>
+                            Este atendimento já foi pago.
+                            Apenas a observação pode ser alterada.
 
-        <div class="panel">
+                        <?php else: ?>
 
-            <p>
-                <strong><?= e($ok) ?></strong>
-            </p>
+                            Atualize as informações do atendimento.
 
-        </div>
+                        <?php endif; ?>
+                    </p>
+                </div>
 
-    <?php endif; ?>
+                <a href="atendimentos.php" class="button secondary">
+                    Voltar
+                </a>
 
-    <section class="panel">
+            </header>
 
-        <form method="post">
+            <?php if ($erro): ?>
 
-            <input
-                type="hidden"
-                name="id"
-                value="<?= e((string)$id) ?>"
-            >
+                <div class="alert error">
+                    <?= e($erro) ?>
+                </div>
 
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
+            <?php elseif ($ok): ?>
 
-            <?php if (!$estaPago): ?>
-
-                <label>
-
-                    Data do atendimento
-
-                    <input
-                        type="date"
-                        name="data_atendimento"
-                        value="<?= e($atendimento['data_atendimento']) ?>"
-                        required
-                    >
-
-                </label>
-
-                <label>
-
-                    Inscrição
-
-                    <input
-                        type="text"
-                        name="inscricao"
-                        value="<?= e($atendimento['inscricao']) ?>"
-                        maxlength="50"
-                        required
-                    >
-
-                </label>
-
-                <label>
-
-                    Parcelas em atraso
-
-                    <input
-                        type="number"
-                        name="parcelas_em_atraso"
-                        value="<?= e((string)$atendimento['parcelas_em_atraso']) ?>"
-                        min="1"
-                        step="1"
-                        required
-                    >
-
-                </label>
-
-                <label>
-
-                    Valor negociado
-
-                    <input
-                        type="number"
-                        name="valor_negociado"
-                        value="<?= e((string)$atendimento['valor_negociado']) ?>"
-                        min="0.01"
-                        step="0.01"
-                        required
-                    >
-
-                </label>
-
-            <?php else: ?>
-
-                <div class="alert">
-
-                    Este atendimento já foi pago.
-                    Os dados do atendimento não podem mais ser alterados.
-
+                <div class="alert success">
+                    <?= e($ok) ?>
                 </div>
 
             <?php endif; ?>
 
-            <label>
+            <section class="edit-panel">
 
-                Observações
+                <div class="edit-panel-heading">
 
-                <textarea
-                    name="observacoes"
-                    rows="4"
-                ><?= e($atendimento['observacoes'] ?? '') ?></textarea>
+                    <div>
+                        <h2>Dados do atendimento</h2>
+                        <p>
+                            Confira as informações antes de salvar.
+                        </p>
+                    </div>
 
-            </label>
+                    <?php if ($estaPago): ?>
 
-            <div>
+                        <span class="edit-status paid">
+                            Pago
+                        </span>
 
-                <button
-                    type="submit"
-                    class="button"
-                >
-                    <?= $estaPago
-                        ? 'Salvar observação'
-                        : 'Salvar alterações'
-                    ?>
-                </button>
+                    <?php else: ?>
 
-                <a
-                    href="atendimentos.php"
-                    class="button secondary"
-                >
-                    Cancelar
-                </a>
+                        <span class="edit-status pending">
+                            Pendente
+                        </span>
 
-            </div>
+                    <?php endif; ?>
 
-        </form>
+                </div>
 
-    </section>
+                <?php if ($estaPago): ?>
 
-</main>
+                    <div class="edit-paid-notice">
+                        <strong>Atendimento já pago</strong>
+                        <p>
+                            Os dados principais não podem mais ser alterados.
+                            Você pode atualizar somente as observações.
+                        </p>
+                    </div>
+
+                <?php endif; ?>
+
+                <form method="POST" class="edit-form">
+
+                    <input
+                        type="hidden"
+                        name="id"
+                        value="<?= e((string)$id) ?>"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="<?= e(csrfToken()) ?>"
+                    >
+
+                    <?php if (!$estaPago): ?>
+
+                        <div class="edit-form-grid">
+
+                            <div class="edit-field">
+                                <label for="data_atendimento">
+                                    Data do atendimento
+                                </label>
+
+                                <input
+                                    type="date"
+                                    id="data_atendimento"
+                                    name="data_atendimento"
+                                    value="<?= e($atendimento['data_atendimento']) ?>"
+                                    required
+                                >
+                            </div>
+
+                            <div class="edit-field">
+                                <label for="inscricao">
+                                    Inscrição
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="inscricao"
+                                    name="inscricao"
+                                    value="<?= e($atendimento['inscricao']) ?>"
+                                    maxlength="50"
+                                    required
+                                >
+                            </div>
+
+                            <div class="edit-field">
+                                <label for="parcelas_em_atraso">
+                                    Parcelas em atraso
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="parcelas_em_atraso"
+                                    name="parcelas_em_atraso"
+                                    value="<?= e((string)$atendimento['parcelas_em_atraso']) ?>"
+                                    min="1"
+                                    step="1"
+                                    required
+                                >
+                            </div>
+
+                            <div class="edit-field">
+                                <label for="valor_negociado">
+                                    Valor negociado
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="valor_negociado"
+                                    name="valor_negociado"
+                                    value="<?= e((string)$atendimento['valor_negociado']) ?>"
+                                    min="0.01"
+                                    step="0.01"
+                                    required
+                                >
+                            </div>
+
+                        </div>
+
+                    <?php endif; ?>
+
+                    <div class="edit-field edit-observations">
+                        <label for="observacoes">
+                            Observações
+                        </label>
+
+                        <textarea
+                            id="observacoes"
+                            name="observacoes"
+                            rows="5"
+                            placeholder="Adicione informações relevantes sobre o atendimento..."
+                        ><?= e($atendimento['observacoes'] ?? '') ?></textarea>
+                    </div>
+
+                    <div class="edit-form-actions">
+
+                        <button type="submit" class="button">
+                            <?= $estaPago
+                                ? 'Salvar observação'
+                                : 'Salvar alterações'
+                            ?>
+                        </button>
+
+                        <a
+                            href="atendimentos.php"
+                            class="button secondary"
+                        >
+                            Cancelar
+                        </a>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
 
 </body>
-
 </html>

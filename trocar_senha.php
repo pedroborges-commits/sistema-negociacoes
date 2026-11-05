@@ -7,7 +7,6 @@ exigirLogin();
 
 $usuario = usuarioAtual();
 $erro = '';
-$mensagem = '';
 
 if (empty($usuario['precisa_trocar_senha'])) {
     header('Location: index.php');
@@ -120,89 +119,130 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trocar senha</title>
-    <link rel="stylesheet" href="assets/style.css">
+    <title>Trocar senha | Sistema de Negociações</title>
+
+    <link rel="stylesheet" href="assets/style.css?v=3">
 </head>
-<body>
-<main class="container">
-    <section class="panel">
-        <h1>Troca obrigatória de senha</h1>
 
-        <p>
-            Olá, <?= e($usuario['nome']) ?>.
-            Defina uma nova senha para continuar.
-        </p>
+<body class="login-page">
 
-        <?php if ($erro !== ''): ?>
-            <div class="error"><?= e($erro) ?></div>
-        <?php endif; ?>
+    <main class="login-container">
 
-        <form method="post">
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
+        <div class="login-brand">
+            <div class="login-brand-symbol">N</div>
+            <span>Sistema de Negociações</span>
+        </div>
 
-            <div class="form-group">
-                <label for="senha_atual">Senha provisória atual</label>
-                <input
-                    type="password"
-                    id="senha_atual"
-                    name="senha_atual"
-                    autocomplete="current-password"
-                    required
-                >
+        <section class="login-card">
+
+            <div class="login-heading">
+                <h1>Troca de senha</h1>
+
+                <p>
+                    Olá, <?= e($usuario['nome']) ?>.
+                    Para continuar, defina uma nova senha de acesso.
+                </p>
             </div>
 
-            <div class="form-group">
-                <label for="nova_senha">Nova senha</label>
-                <input
-                    type="password"
-                    id="nova_senha"
-                    name="nova_senha"
-                    autocomplete="new-password"
-                    minlength="8"
-                    required
-                >
-                <small>
-                    Pelo menos 8 caracteres, uma letra e um número.
-                </small>
+            <div class="password-notice">
+                <strong>Primeiro acesso</strong>
+                <p>
+                    Você está utilizando uma senha provisória.
+                    Crie uma nova senha para acessar o sistema.
+                </p>
             </div>
 
-            <div class="form-group">
-                <label for="confirmar_senha">Confirme a nova senha</label>
+            <?php if ($erro !== ''): ?>
+                <div class="alert error">
+                    <?= e($erro) ?>
+                </div>
+            <?php endif; ?>
+
+            <form method="POST" class="login-form">
+
                 <input
-                    type="password"
-                    id="confirmar_senha"
-                    name="confirmar_senha"
-                    autocomplete="new-password"
-                    minlength="8"
-                    required
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= e(csrfToken()) ?>"
                 >
-            </div>
 
-            <button type="submit" class="button">
-                Salvar nova senha
-            </button>
-        </form>
+                <div class="login-field">
+                    <label for="senha_atual">Senha provisória atual</label>
 
-        <form method="post" action="logout.php" style="margin-top: 12px;">
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
-            <button type="submit" class="button secondary">
-                Sair
-            </button>
-        </form>
-    </section>
-</main>
+                    <input
+                        type="password"
+                        id="senha_atual"
+                        name="senha_atual"
+                        autocomplete="current-password"
+                        placeholder="Digite sua senha atual"
+                        required
+                    >
+                </div>
+
+                <div class="login-field">
+                    <label for="nova_senha">Nova senha</label>
+
+                    <input
+                        type="password"
+                        id="nova_senha"
+                        name="nova_senha"
+                        autocomplete="new-password"
+                        minlength="8"
+                        placeholder="Crie uma nova senha"
+                        required
+                    >
+
+                    <small>
+                        Pelo menos 8 caracteres, uma letra e um número.
+                    </small>
+                </div>
+
+                <div class="login-field">
+                    <label for="confirmar_senha">Confirme a nova senha</label>
+
+                    <input
+                        type="password"
+                        id="confirmar_senha"
+                        name="confirmar_senha"
+                        autocomplete="new-password"
+                        minlength="8"
+                        placeholder="Digite novamente a nova senha"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="button login-submit">
+                    Salvar nova senha
+                </button>
+
+            </form>
+
+            <form method="POST" action="logout.php" class="login-logout-form">
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= e(csrfToken()) ?>"
+                >
+
+                <button type="submit" class="login-logout-button">
+                    Sair do sistema
+                </button>
+            </form>
+
+        </section>
+
+        <div class="login-footer">
+            Sistema de Negociações
+        </div>
+
+    </main>
+
 </body>
 </html>

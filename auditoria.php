@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '/config/bootstrap.php';
 
@@ -38,6 +37,7 @@ $acoesPermitidas = [
     'PAGAR',
     'ALTERAR_SENHA'
 ];
+
 if (!in_array($acaoFiltro, $acoesPermitidas, true)) {
     $acaoFiltro = '';
 }
@@ -245,313 +245,511 @@ $filtrosPaginacao = [
 
     <title>Auditoria</title>
 
-    <link rel="stylesheet" href="assets/style.css">
+    <link
+        rel="stylesheet"
+        href="/sistema-negociacoes-redesign/assets/style.css?v=2"
+    >
 </head>
 
-<body>
+<body class="dashboard-page">
 
-<header class="topbar">
-    <strong>Sistema de Negociações</strong>
+<div class="dashboard-layout">
 
-    <span>
-        <?= e($u['nome']) ?>
-        ·
-        <?= e($u['perfil']) ?>
-        ·
+    <!-- MENU LATERAL -->
+    <aside class="sidebar">
 
-        <form method="POST" action="logout.php" style="display:inline;">
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
-
-            <button type="submit">Sair</button>
-        </form>
-    </span>
-</header>
-
-<main class="container">
-
-    <div class="head">
-        <div>
-            <h1>Auditoria</h1>
-
-            <p>
-                Histórico das ações realizadas no sistema.
-            </p>
-        </div>
-
-        <a class="button secondary" href="index.php">
-            ← Voltar
-        </a>
-    </div>
-
-    <!-- Filtros -->
-
-    <section class="panel">
-        <h2>Filtros</h2>
-
-        <form method="get" class="form">
-
-            <label>
-                Data inicial
-
-                <input
-                    type="date"
-                    name="data_inicio"
-                    value="<?= e($dataInicio) ?>"
-                >
-            </label>
-
-            <label>
-                Data final
-
-                <input
-                    type="date"
-                    name="data_fim"
-                    value="<?= e($dataFim) ?>"
-                >
-            </label>
-
-            <label>
-                Usuário
-
-                <select name="usuario">
-                    <option value="">Todos</option>
-
-                    <?php foreach ($usuarios as $usuario): ?>
-                        <option
-                            value="<?= e($usuario['id']) ?>"
-                            <?= $usuarioId === (int) $usuario['id']
-                                ? 'selected'
-                                : '' ?>
-                        >
-                            <?= e($usuario['nome']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-
-            <label>
-                Ação
-
-                <select name="acao">
-                    <option value="">Todas</option>
-
-                    <?php foreach ($acoesPermitidas as $acao): ?>
-                        <option
-                            value="<?= e($acao) ?>"
-                            <?= $acaoFiltro === $acao ? 'selected' : '' ?>
-                        >
-                            <?= e($acao) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-
-            <label>
-                ID do atendimento
-
-                <input
-                    type="number"
-                    name="registro_id"
-                    min="1"
-                    value="<?= $registroId > 0 ? e($registroId) : '' ?>"
-                >
-            </label>
+        <div class="sidebar-brand">
+            <div class="brand-symbol">N</div>
 
             <div>
-                <button type="submit" class="button">
-                    Filtrar
-                </button>
+                <strong>Negociações</strong>
+                <span>Sistema de gestão</span>
+            </div>
+        </div>
 
-                <a href="auditoria.php" class="button secondary">
-                    Limpar
-                </a>
+        <div class="sidebar-section-label">MENU PRINCIPAL</div>
+
+        <nav class="sidebar-nav">
+
+            <a href="index.php" class="sidebar-link">
+                <span class="nav-icon">⌂</span>
+                <span>Painel</span>
+            </a>
+
+            <a href="novo_atendimento.php" class="sidebar-link">
+                <span class="nav-icon">＋</span>
+                <span>Novo atendimento</span>
+            </a>
+
+            <a href="atendimentos.php" class="sidebar-link">
+                <span class="nav-icon">▤</span>
+                <span>Atendimentos</span>
+            </a>
+            <a href="minha_conta.php" class="sidebar-link">
+    <span class="nav-icon">⚙</span>
+    <span>Minha conta</span>
+</a>
+
+            <div class="sidebar-section-label">GESTÃO</div>
+
+            <a href="relatorio.php" class="sidebar-link">
+                <span class="nav-icon">▥</span>
+                <span>Relatórios</span>
+            </a>
+
+            <a href="usuarios.php" class="sidebar-link">
+                <span class="nav-icon">♙</span>
+                <span>Usuários</span>
+            </a>
+
+            <a href="auditoria.php" class="sidebar-link active">
+                <span class="nav-icon">◷</span>
+                <span>Auditoria</span>
+            </a>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <div class="sidebar-user">
+
+                <div class="user-avatar">
+                    <?= e(mb_strtoupper(mb_substr($u['nome'], 0, 1, 'UTF-8'), 'UTF-8')) ?>
+                </div>
+
+                <div class="user-info">
+                    <strong><?= e($u['nome']) ?></strong>
+                    <span><?= e($u['perfil']) ?></span>
+                </div>
+
             </div>
 
-        </form>
-    </section>
+            <form method="POST" action="logout.php">
 
-    <!-- Detalhes da auditoria -->
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= e(csrfToken()) ?>"
+                >
 
-    <?php if ($detalhe): ?>
-        <section class="panel">
+                <button type="submit" class="logout-button">
+                    <span>↪</span>
+                    Sair do sistema
+                </button>
 
-            <h2>
-                Detalhes da auditoria #<?= e($detalhe['id']) ?>
-            </h2>
+            </form>
 
-            <p>
-                <strong>Usuário:</strong>
-                <?= e($detalhe['usuario_nome'] ?? 'Usuário removido') ?>
-            </p>
+        </div>
 
-            <p>
-                <strong>Ação:</strong>
-                <?= e($detalhe['acao']) ?>
-            </p>
+    </aside>
 
-            <p>
-                <strong>Tabela:</strong>
-                <?= e($detalhe['tabela_afetada']) ?>
-            </p>
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="dashboard-main">
 
-            <p>
-                <strong>Registro:</strong>
-                #<?= e($detalhe['registro_id']) ?>
-            </p>
+        <div class="dashboard-content">
 
-            <p>
-                <strong>Data:</strong>
-                <?= e($detalhe['criado_em']) ?>
-            </p>
+            <!-- CABEÇALHO -->
+            <section class="dashboard-welcome audit-page-welcome">
 
-            <h3>Dados anteriores</h3>
+                <div>
+                    <span class="welcome-label">GESTÃO</span>
 
-            <?php if ($detalhe['dados_anteriores_array']): ?>
-                <pre><?= e(
-                    json_encode(
-                        $detalhe['dados_anteriores_array'],
-                        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
-                    )
-                ) ?></pre>
-            <?php else: ?>
-                <p>Nenhum dado anterior.</p>
+                    <h1 class="welcome-text">Auditoria</h1>
+
+                    <p>
+                        Histórico das ações realizadas no sistema.
+                    </p>
+                </div>
+
+                <a href="index.php" class="audit-back-button">
+                    ← Voltar ao painel
+                </a>
+
+            </section>
+
+            <!-- FILTROS -->
+            <section class="panel audit-filter-panel">
+
+                <div class="audit-section-heading">
+                    <div>
+                        <h2>Filtros de pesquisa</h2>
+                        <p>
+                            Utilize os filtros para localizar registros específicos.
+                        </p>
+                    </div>
+                </div>
+
+                <form method="get" class="audit-filter-form">
+
+                    <div class="audit-filter-field">
+                        <label for="data_inicio">Data inicial</label>
+
+                        <input
+                            type="date"
+                            id="data_inicio"
+                            name="data_inicio"
+                            value="<?= e($dataInicio) ?>"
+                        >
+                    </div>
+
+                    <div class="audit-filter-field">
+                        <label for="data_fim">Data final</label>
+
+                        <input
+                            type="date"
+                            id="data_fim"
+                            name="data_fim"
+                            value="<?= e($dataFim) ?>"
+                        >
+                    </div>
+
+                    <div class="audit-filter-field">
+                        <label for="usuario">Usuário</label>
+
+                        <select id="usuario" name="usuario">
+
+                            <option value="">Todos</option>
+
+                            <?php foreach ($usuarios as $usuario): ?>
+
+                                <option
+                                    value="<?= e((string)$usuario['id']) ?>"
+                                    <?= $usuarioId === (int)$usuario['id']
+                                        ? 'selected'
+                                        : '' ?>
+                                >
+                                    <?= e($usuario['nome']) ?>
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+                    </div>
+
+                    <div class="audit-filter-field">
+                        <label for="acao">Ação</label>
+
+                        <select id="acao" name="acao">
+
+                            <option value="">Todas</option>
+
+                            <?php foreach ($acoesPermitidas as $acao): ?>
+
+                                <option
+                                    value="<?= e($acao) ?>"
+                                    <?= $acaoFiltro === $acao ? 'selected' : '' ?>
+                                >
+                                    <?= e($acao) ?>
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+                    </div>
+
+                    <div class="audit-filter-field">
+                        <label for="registro_id">ID do atendimento</label>
+
+                        <input
+                            type="number"
+                            id="registro_id"
+                            name="registro_id"
+                            min="1"
+                            value="<?= $registroId > 0 ? e((string)$registroId) : '' ?>"
+                            placeholder="Ex.: 125"
+                        >
+                    </div>
+
+                    <div class="audit-filter-actions">
+
+                        <button type="submit" class="audit-filter-button">
+                            Filtrar
+                        </button>
+
+                        <a href="auditoria.php" class="audit-clear-button">
+                            Limpar filtros
+                        </a>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+            <!-- DETALHES DA AUDITORIA -->
+            <?php if ($detalhe): ?>
+
+                <section class="panel audit-detail-panel">
+
+                    <div class="audit-section-heading audit-detail-heading">
+
+                        <div>
+                            <span class="audit-detail-label">REGISTRO DE AUDITORIA</span>
+
+                            <h2>
+                                Detalhes #<?= e((string)$detalhe['id']) ?>
+                            </h2>
+
+                            <p>
+                                Informações completas da ação selecionada.
+                            </p>
+                        </div>
+
+                        <a
+                            href="?<?= http_build_query(
+                                array_merge(
+                                    $filtrosPaginacao,
+                                    ['pagina' => $pagina]
+                                )
+                            ) ?>"
+                            class="audit-close-detail"
+                        >
+                            Fechar detalhes
+                        </a>
+
+                    </div>
+
+                    <div class="audit-detail-info-grid">
+
+                        <div class="audit-detail-info">
+                            <span>Usuário</span>
+                            <strong>
+                                <?= e($detalhe['usuario_nome'] ?? 'Usuário removido') ?>
+                            </strong>
+                        </div>
+
+                        <div class="audit-detail-info">
+                            <span>Ação</span>
+                            <strong><?= e($detalhe['acao']) ?></strong>
+                        </div>
+
+                        <div class="audit-detail-info">
+                            <span>Tabela afetada</span>
+                            <strong><?= e($detalhe['tabela_afetada']) ?></strong>
+                        </div>
+
+                        <div class="audit-detail-info">
+                            <span>Registro</span>
+                            <strong>#<?= e((string)$detalhe['registro_id']) ?></strong>
+                        </div>
+
+                        <div class="audit-detail-info">
+                            <span>Data e hora</span>
+                            <strong><?= e($detalhe['criado_em']) ?></strong>
+                        </div>
+
+                    </div>
+
+                    <div class="audit-json-grid">
+
+                        <div class="audit-json-card">
+
+                            <h3>Dados anteriores</h3>
+
+                            <?php if ($detalhe['dados_anteriores_array']): ?>
+
+                                <pre><?= e(
+                                    json_encode(
+                                        $detalhe['dados_anteriores_array'],
+                                        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+                                    )
+                                ) ?></pre>
+
+                            <?php else: ?>
+
+                                <p class="audit-no-data">
+                                    Nenhum dado anterior.
+                                </p>
+
+                            <?php endif; ?>
+
+                        </div>
+
+                        <div class="audit-json-card">
+
+                            <h3>Dados novos</h3>
+
+                            <?php if ($detalhe['dados_novos_array']): ?>
+
+                                <pre><?= e(
+                                    json_encode(
+                                        $detalhe['dados_novos_array'],
+                                        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+                                    )
+                                ) ?></pre>
+
+                            <?php else: ?>
+
+                                <p class="audit-no-data">
+                                    Nenhum dado novo.
+                                </p>
+
+                            <?php endif; ?>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
             <?php endif; ?>
 
-            <h3>Dados novos</h3>
+            <!-- HISTÓRICO -->
+            <section class="panel audit-history-panel">
 
-            <?php if ($detalhe['dados_novos_array']): ?>
-                <pre><?= e(
-                    json_encode(
-                        $detalhe['dados_novos_array'],
-                        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
-                    )
-                ) ?></pre>
-            <?php else: ?>
-                <p>Nenhum dado novo.</p>
-            <?php endif; ?>
+                <div class="audit-section-heading audit-history-heading">
 
-        </section>
-    <?php endif; ?>
+                    <div>
+                        <h2>Histórico de ações</h2>
 
-    <!-- Histórico -->
+                        <p>
+                            <?= $totalRegistros ?>
+                            <?= $totalRegistros === 1 ? 'registro encontrado' : 'registros encontrados' ?>
+                        </p>
+                    </div>
 
-    <section class="panel table">
+                </div>
 
-        <h2>Histórico</h2>
+                <div class="audit-table-wrapper">
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Data/Hora</th>
-                    <th>Usuário</th>
-                    <th>Ação</th>
-                    <th>Tabela</th>
-                    <th>Registro</th>
-                    <th>Detalhes</th>
-                </tr>
-            </thead>
+                    <table class="audit-table">
 
-            <tbody>
-                <?php foreach ($auditorias as $auditoria): ?>
-                    <tr>
-                        <td>
-                            <?= e($auditoria['criado_em']) ?>
-                        </td>
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Usuário</th>
+                                <th>Ação</th>
+                                <th>Tabela</th>
+                                <th>Registro</th>
+                                <th>Detalhes</th>
+                            </tr>
+                        </thead>
 
-                        <td>
-                            <?= e(
-                                $auditoria['usuario_nome']
-                                ?? 'Usuário removido'
-                            ) ?>
-                        </td>
+                        <tbody>
 
-                        <td>
-                            <?= e($auditoria['acao']) ?>
-                        </td>
+                            <?php foreach ($auditorias as $auditoria): ?>
 
-                        <td>
-                            <?= e($auditoria['tabela_afetada']) ?>
-                        </td>
+                                <tr>
 
-                        <td>
-                            #<?= e($auditoria['registro_id']) ?>
-                        </td>
+                                    <td>
+                                        <?= e($auditoria['criado_em']) ?>
+                                    </td>
 
-                        <td>
+                                    <td>
+                                        <?= e(
+                                            $auditoria['usuario_nome']
+                                            ?? 'Usuário removido'
+                                        ) ?>
+                                    </td>
+
+                                    <td>
+                                        <span class="audit-action-tag">
+                                            <?= e($auditoria['acao']) ?>
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <?= e($auditoria['tabela_afetada']) ?>
+                                    </td>
+
+                                    <td>
+                                        #<?= e((string)$auditoria['registro_id']) ?>
+                                    </td>
+
+                                    <td>
+                                        <a
+                                            class="audit-detail-button"
+                                            href="?<?= http_build_query(
+                                                array_merge(
+                                                    $filtrosPaginacao,
+                                                    [
+                                                        'pagina' => $pagina,
+                                                        'detalhe' => $auditoria['id']
+                                                    ]
+                                                )
+                                            ) ?>"
+                                        >
+                                            Ver detalhes
+                                        </a>
+                                    </td>
+
+                                </tr>
+
+                            <?php endforeach; ?>
+
+                            <?php if (!$auditorias): ?>
+
+                                <tr>
+                                    <td colspan="6" class="audit-empty">
+                                        Nenhum registro de auditoria encontrado.
+                                    </td>
+                                </tr>
+
+                            <?php endif; ?>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                <!-- PAGINAÇÃO -->
+                <div class="audit-pagination">
+
+                    <div class="audit-pagination-info">
+                        Página <?= e((string)$pagina) ?>
+                        de <?= e((string)$totalPaginas) ?>
+
+                        <span>·</span>
+
+                        <?= e((string)$totalRegistros) ?> registros
+                    </div>
+
+                    <div class="audit-pagination-actions">
+
+                        <?php if ($pagina > 1): ?>
+
                             <a
-                                class="button secondary"
+                                class="audit-pagination-button"
                                 href="?<?= http_build_query(
                                     array_merge(
                                         $filtrosPaginacao,
-                                        [
-                                            'pagina' => $pagina,
-                                            'detalhe' => $auditoria['id']
-                                        ]
+                                        ['pagina' => $pagina - 1]
                                     )
                                 ) ?>"
                             >
-                                Ver detalhes
+                                ← Anterior
                             </a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
 
-                <?php if (!$auditorias): ?>
-                    <tr>
-                        <td colspan="6">
-                            Nenhum registro de auditoria encontrado.
-                        </td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                        <?php endif; ?>
 
-        <!-- Paginação -->
+                        <?php if ($pagina < $totalPaginas): ?>
 
-        <div class="pagination">
-            <span>
-                Página <?= e($pagina) ?> de <?= e($totalPaginas) ?>
-                · <?= e($totalRegistros) ?> registros
-            </span>
+                            <a
+                                class="audit-pagination-button"
+                                href="?<?= http_build_query(
+                                    array_merge(
+                                        $filtrosPaginacao,
+                                        ['pagina' => $pagina + 1]
+                                    )
+                                ) ?>"
+                            >
+                                Próxima →
+                            </a>
 
-            <div>
-                <?php if ($pagina > 1): ?>
-                    <a
-                        class="button secondary"
-                        href="?<?= http_build_query(
-                            array_merge(
-                                $filtrosPaginacao,
-                                ['pagina' => $pagina - 1]
-                            )
-                        ) ?>"
-                    >
-                        Anterior
-                    </a>
-                <?php endif; ?>
+                        <?php endif; ?>
 
-                <?php if ($pagina < $totalPaginas): ?>
-                    <a
-                        class="button secondary"
-                        href="?<?= http_build_query(
-                            array_merge(
-                                $filtrosPaginacao,
-                                ['pagina' => $pagina + 1]
-                            )
-                        ) ?>"
-                    >
-                        Próxima
-                    </a>
-                <?php endif; ?>
-            </div>
+                    </div>
+
+                </div>
+
+            </section>
+
         </div>
 
-    </section>
+    </main>
 
-</main>
+</div>
 
 </body>
 </html>

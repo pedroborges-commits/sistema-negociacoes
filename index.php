@@ -1,3 +1,4 @@
+
 <?php
 
 require_once __DIR__ . '/config/bootstrap.php';
@@ -7,80 +8,118 @@ exigirLogin();
 $u = usuarioAtual();
 $pdo = db();
 
-$filtroUsuario = '';
-$paramsUsuario = [];
+/*
+|--------------------------------------------------------------------------
+| Período do mês atual
+|--------------------------------------------------------------------------
+*/
+
+$inicioMes = date('Y-m-01');
+$inicioProximoMes = date('Y-m-01', strtotime('first day of next month'));
+
+/*
+|--------------------------------------------------------------------------
+| Filtro de usuário e período
+|--------------------------------------------------------------------------
+*/
+
+$filtroMes = "
+    WHERE data_atendimento >= ?
+      AND data_atendimento < ?
+";
+
+$paramsMes = [$inicioMes, $inicioProximoMes];
 
 if ($u['perfil'] === 'OPERADOR') {
-    $filtroUsuario = ' WHERE usuario_id = ?';
-    $paramsUsuario[] = (int)$u['id'];
+    $filtroMes .= " AND usuario_id = ?";
+    $paramsMes[] = (int)$u['id'];
 }
 
 /*
 |--------------------------------------------------------------------------
-| Total de atendimentos
+| Total de atendimentos no mês
 |--------------------------------------------------------------------------
 */
 
 $stmt = $pdo->prepare("
     SELECT COUNT(*)
     FROM atendimentos
-    $filtroUsuario
+    $filtroMes
 ");
 
-$stmt->execute($paramsUsuario);
+$stmt->execute($paramsMes);
 
 $totalAtendimentos = (int)$stmt->fetchColumn();
 
-
 /*
 |--------------------------------------------------------------------------
-| Total de parcelas em atraso
+| Total de parcelas em atraso no mês
 |--------------------------------------------------------------------------
 */
 
 $stmt = $pdo->prepare("
     SELECT COALESCE(SUM(parcelas_em_atraso), 0)
     FROM atendimentos
-    $filtroUsuario
+    $filtroMes
 ");
 
-$stmt->execute($paramsUsuario);
+$stmt->execute($paramsMes);
 
 $totalParcelasAtraso = (int)$stmt->fetchColumn();
 
-
 /*
 |--------------------------------------------------------------------------
-| Valor total negociado
+| Valor total negociado no mês
+|
+| O período é definido pela data_atendimento.
 |--------------------------------------------------------------------------
 */
 
 $stmt = $pdo->prepare("
     SELECT COALESCE(SUM(valor_negociado), 0)
     FROM atendimentos
-    $filtroUsuario
+    $filtroMes
 ");
 
-$stmt->execute($paramsUsuario);
+$stmt->execute($paramsMes);
 
 $totalNegociado = $stmt->fetchColumn();
 
 
 /*
 |--------------------------------------------------------------------------
-| Valor total recebido
+| Valor total recebido no mês
+|
+| O período é definido pela data_pagamento.
 |--------------------------------------------------------------------------
 */
+
+$filtroPagamentoMes = "
+    WHERE data_pagamento >= ?
+      AND data_pagamento < ?
+";
+
+$paramsPagamentoMes = [$inicioMes, $inicioProximoMes];
+
+if ($u['perfil'] === 'OPERADOR') {
+    $filtroPagamentoMes .= " AND usuario_id = ?";
+    $paramsPagamentoMes[] = (int)$u['id'];
+}
 
 $stmt = $pdo->prepare("
     SELECT COALESCE(SUM(valor_recebido), 0)
     FROM atendimentos
-    $filtroUsuario
+    $filtroPagamentoMes
 ");
 
-$stmt->execute($paramsUsuario);
+$stmt->execute($paramsPagamentoMes);
 
 $totalRecebido = $stmt->fetchColumn();
+/*
+|--------------------------------------------------------------------------
+| Valor negociado hoje
+|--------------------------------------------------------------------------
+*/
 
 if ($u['perfil'] === 'OPERADOR') {
 
@@ -166,228 +205,374 @@ $atendimentosHoje = (int)$stmt->fetchColumn();
 <html lang="pt-BR">
 
 <head>
-
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1"
-    >
+    <title>Painel | Sistema de Negociações</title>
 
-    <title>Sistema de Negociações</title>
-
-    <link
-        rel="stylesheet"
-        href="assets/style.css"
-    >
-
+    <link rel="stylesheet" href="/sistema-negociacoes-redesign/assets/style.css?v=2">
 </head>
 
-<body>
+<body class="dashboard-page">
 
-<header class="topbar">
+<div class="dashboard-layout">
 
-    <strong>Sistema de Negociações</strong>
+    <!-- MENU LATERAL -->
+    <aside class="sidebar">
 
-    <span>
+        <div class="sidebar-brand">
+            <div class="brand-symbol">N</div>
 
-        <?= e($u['nome']) ?>
-        ·
-        <?= e($u['perfil']) ?>
-        ·
+            <div>
+                <strong>Negociações</strong>
+                <span>Sistema de gestão</span>
+            </div>
+        </div>
 
-        <form
-            method="POST"
-            action="logout.php"
-            style="display:inline;"
-        >
+        <div class="sidebar-section-label">MENU PRINCIPAL</div>
 
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
+        <nav class="sidebar-nav">
 
-            <button type="submit">
-                Sair
-            </button>
+            <a href="index.php" class="sidebar-link active">
+                <span class="nav-icon">⌂</span>
+                <span>Painel</span>
+            </a>
 
-        </form>
+            <a href="novo_atendimento.php" class="sidebar-link">
+                <span class="nav-icon">＋</span>
+                <span>Novo atendimento</span>
+            </a>
 
-    </span>
+            <a href="atendimentos.php" class="sidebar-link">
+                <span class="nav-icon">▤</span>
+                <span>Atendimentos</span>
+            </a>
+            <a href="minha_conta.php" class="sidebar-link">
+    <span class="nav-icon">⚙</span>
+    <span>Minha conta</span>
+</a>
 
-</header>
+            <?php if (in_array($u['perfil'], ['ADMIN', 'SUPERVISOR'], true)): ?>
 
+                <div class="sidebar-section-label">GESTÃO</div>
 
-<main class="container">
+                <a href="relatorio.php" class="sidebar-link">
+                    <span class="nav-icon">▥</span>
+                    <span>Relatórios</span>
+                </a>
 
-    <div class="head">
+            <?php endif; ?>
 
-        <div>
+            <?php if ($u['perfil'] === 'ADMIN'): ?>
 
-            <h1>Painel</h1>
+                <a href="usuarios.php" class="sidebar-link">
+                    <span class="nav-icon">♙</span>
+                    <span>Usuários</span>
+                </a>
 
-            <p>
-                Atendimentos centralizados em um único sistema.
-            </p>
+                <a href="auditoria.php" class="sidebar-link">
+                    <span class="nav-icon">◷</span>
+                    <span>Auditoria</span>
+                </a>
+
+            <?php endif; ?>
+
+        </nav>
+
+        <!-- USUÁRIO E LOGOUT -->
+        <div class="sidebar-bottom">
+
+            <div class="sidebar-user">
+
+                <div class="user-avatar">
+                    <?= e(mb_strtoupper(mb_substr($u['nome'], 0, 1, 'UTF-8'), 'UTF-8')) ?>
+                </div>
+
+                <div class="user-info">
+                    <strong><?= e($u['nome']) ?></strong>
+                    <span><?= e($u['perfil']) ?></span>
+                </div>
+
+            </div>
+
+            <form method="POST" action="logout.php">
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= e(csrfToken()) ?>"
+                >
+
+                <button type="submit" class="logout-button">
+                    <span>↪</span>
+                    Sair do sistema
+                </button>
+
+            </form>
 
         </div>
 
-        <a
-            class="button"
-            href="novo_atendimento.php"
-        >
-            + Novo atendimento
-        </a>
+    </aside>
 
-    </div>
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="dashboard-main">
 
+        <div class="dashboard-content">
 
-   <h2>Visão geral</h2>
+            <!-- BOAS-VINDAS -->
+            <section class="dashboard-welcome">
 
-<section class="cards">
+                <div class="welcome-text">
 
-    <div class="card">
+                    <span class="welcome-label">VISÃO GERAL</span>
 
-        <span>
-            Total de atendimentos
-        </span>
+                    <h1>Olá, <?= e($u['nome']) ?>!</h1>
 
-        <b>
-            <?= $totalAtendimentos ?>
-        </b>
+                    <p>
+                        Acompanhe os indicadores e movimentações do sistema.
+                    </p>
 
-    </div>
+                    <span class="welcome-current-date">
+                        <?= date('d/m/Y') ?>
+                    </span>
 
+                </div>
 
-    <div class="card">
+                <a href="novo_atendimento.php" class="button dashboard-primary-button">
+                    <span>＋</span>
+                    Novo atendimento
+                </a>
 
-        <span>
-            Valor total negociado
-        </span>
+            </section>
 
-        <b>
-            <?= dinheiro($totalNegociado) ?>
-        </b>
+            <!-- INDICADORES GERAIS DO MÊS -->
+            <section class="dashboard-section">
 
-    </div>
+                <div class="section-heading">
+                    <div>
+                        <h2>Visão geral</h2>
+                       <p>Atendimentos registrados e pagamentos realizados neste mês.</p>
+                    </div>
+                </div>
 
+                <div class="dashboard-cards">
 
-    <div class="card">
+                    <article class="dashboard-card">
 
-        <span>
-            Total recebido
-        </span>
+                        <div class="card-top">
+                            <span class="card-icon blue">▤</span>
+                            <span class="card-caption">ATENDIMENTOS</span>
+                        </div>
 
-        <b>
-            <?= dinheiro($totalRecebido) ?>
-        </b>
+                        <strong class="card-value">
+                            <?= $totalAtendimentos ?>
+                        </strong>
 
-    </div>
+                        <span class="card-description">
+                            Atendimentos no mês
+                        </span>
 
-</section>
+                    </article>
 
+                    <article class="dashboard-card">
 
-<h2>Hoje</h2>
+                        <div class="card-top">
+                            <span class="card-icon purple">R$</span>
+                            <span class="card-caption">VALOR NEGOCIADO</span>
+                        </div>
 
-<section class="cards">
+                        <strong class="card-value">
+                            <?= dinheiro($totalNegociado) ?>
+                        </strong>
 
-    <div class="card">
+                        <span class="card-description">
+                            Valor negociado no mês
+                        </span>
 
-        <span>
-            Atendimentos hoje
-        </span>
+                    </article>
 
-        <b>
-            <?= $atendimentosHoje ?>
-        </b>
+                    <article class="dashboard-card">
 
-    </div>
+                        <div class="card-top">
+                            <span class="card-icon green">✓</span>
+                            <span class="card-caption">VALOR RECEBIDO</span>
+                        </div>
 
+                        <strong class="card-value">
+                            <?= dinheiro($totalRecebido) ?>
+                        </strong>
 
-    <div class="card">
+                        <span class="card-description">
+                          Pagamentos realizados neste mês
+                        </span>
 
-        <span>
-            Valor negociado hoje
-        </span>
+                    </article>
 
-        <b>
-            <?= dinheiro($totalNegociadoHoje) ?>
-        </b>
+                </div>
 
-    </div>
+            </section>
 
+            <!-- MOVIMENTAÇÕES DE HOJE -->
+            <section class="dashboard-section">
 
-    <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <h2>Movimentações de hoje</h2>
+                        <p>Atendimentos registrados e pagamentos realizados hoje.</p>
+                    </div>
+                </div>
 
-        <span>
-            Valor recebido hoje
-        </span>
+                <div class="dashboard-cards">
 
-        <b>
-            <?= dinheiro($totalRecebidoHoje) ?>
-        </b>
+                    <article class="dashboard-card">
 
-    </div>
+                        <div class="card-top">
+                            <span class="card-icon blue">＋</span>
+                            <span class="card-caption">ATENDIMENTOS HOJE</span>
+                        </div>
 
-</section>
+                        <strong class="card-value">
+                            <?= $atendimentosHoje ?>
+                        </strong>
 
+                        <span class="card-description">
+                            Registros realizados hoje
+                        </span>
 
-    <section class="panel">
+                    </article>
 
-        <h2>Ações rápidas</h2>
+                    <article class="dashboard-card">
 
+                        <div class="card-top">
+                            <span class="card-icon purple">R$</span>
+                            <span class="card-caption">NEGOCIADO HOJE</span>
+                        </div>
 
-        <a
-            class="button secondary"
-            href="novo_atendimento.php"
-        >
-            Registrar atendimento
-        </a>
+                        <strong class="card-value">
+                            <?= dinheiro($totalNegociadoHoje) ?>
+                        </strong>
 
+                        <span class="card-description">
+                            Valor negociado hoje
+                        </span>
 
-        <a
-            class="button secondary"
-            href="atendimentos.php"
-        >
-            Ver atendimentos
-        </a>
+                    </article>
 
+                    <article class="dashboard-card">
 
-        <?php if (in_array($u['perfil'], ['ADMIN', 'SUPERVISOR'], true)): ?>
+                        <div class="card-top">
+                            <span class="card-icon green">✓</span>
+                            <span class="card-caption">RECEBIDO HOJE</span>
+                        </div>
 
-            <a
-                class="button secondary"
-                href="relatorio.php"
-            >
-                Relatório mensal
-            </a>
+                        <strong class="card-value">
+                            <?= dinheiro($totalRecebidoHoje) ?>
+                        </strong>
 
-        <?php endif; ?>
+                        <span class="card-description">
+                           Pagamentos realizados hoje
+                        </span>
 
+                    </article>
 
-        <?php if ($u['perfil'] === 'ADMIN'): ?>
+                </div>
 
-            <a
-                href="usuarios.php"
-                class="button"
-            >
-                Usuários
-            </a>
+            </section>
 
+            <!-- ACESSO RÁPIDO -->
+            <section class="quick-actions">
 
-            <a
-                href="auditoria.php"
-                class="button secondary"
-            >
-                Auditoria
-            </a>
+                <div class="section-heading">
+                    <div>
+                        <h2>Acesso rápido</h2>
+                        <p>Acesse diretamente as principais funções.</p>
+                    </div>
+                </div>
 
-        <?php endif; ?>
+                <div class="quick-actions-grid">
 
-    </section>
+                    <a href="novo_atendimento.php" class="quick-action">
 
-</main>
+                        <span class="quick-action-icon blue">＋</span>
+
+                        <div>
+                            <strong>Registrar atendimento</strong>
+                            <span>Nova negociação</span>
+                        </div>
+
+                        <span class="quick-arrow">↗</span>
+
+                    </a>
+
+                    <a href="atendimentos.php" class="quick-action">
+
+                        <span class="quick-action-icon purple">▤</span>
+
+                        <div>
+                            <strong>Consultar atendimentos</strong>
+                            <span>Visualizar registros</span>
+                        </div>
+
+                        <span class="quick-arrow">↗</span>
+
+                    </a>
+
+                    <?php if (in_array($u['perfil'], ['ADMIN', 'SUPERVISOR'], true)): ?>
+
+                        <a href="relatorio.php" class="quick-action">
+
+                            <span class="quick-action-icon green">▥</span>
+
+                            <div>
+                                <strong>Relatório mensal</strong>
+                                <span>Resultados do período</span>
+                            </div>
+
+                            <span class="quick-arrow">↗</span>
+
+                        </a>
+
+                    <?php endif; ?>
+
+                    <?php if ($u['perfil'] === 'ADMIN'): ?>
+
+                        <a href="usuarios.php" class="quick-action">
+
+                            <span class="quick-action-icon orange">♙</span>
+
+                            <div>
+                                <strong>Gerenciar usuários</strong>
+                                <span>Administrar acessos</span>
+                            </div>
+
+                            <span class="quick-arrow">↗</span>
+
+                        </a>
+
+                        <a href="auditoria.php" class="quick-action">
+
+                            <span class="quick-action-icon gray">◷</span>
+
+                            <div>
+                                <strong>Auditoria</strong>
+                                <span>Ações realizadas no sistema</span>
+                            </div>
+
+                            <span class="quick-arrow">↗</span>
+
+                        </a>
+
+                    <?php endif; ?>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
 
 </body>
 

@@ -276,201 +276,285 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <title>Editar usuário | Sistema de Negociações</title>
 
-    <title>Editar usuário</title>
-
-    <link
-        rel="stylesheet"
-        href="assets/style.css"
-    >
-
+    <link rel="stylesheet" href="assets/style.css?v=3">
 </head>
 
-<body>
+<body class="dashboard-page">
 
-<header class="topbar">
+<div class="dashboard-layout">
 
-    <div>
-        <strong>Sistema de Negociações</strong>
-    </div>
+    <aside class="sidebar">
 
-    <div>
+        <div class="sidebar-brand">
+            <div class="brand-symbol">N</div>
 
-        <span>
-            <?= e($usuarioAtual['nome']) ?>
-            (<?= e($usuarioAtual['perfil']) ?>)
-        </span>
-
-        <a href="index.php">Início</a>
-
-        <a href="usuarios.php">Usuários</a>
-
-        <form
-            method="post"
-            action="logout.php"
-            style="display:inline;"
-        >
-
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
-
-            <button type="submit">
-                Sair
-            </button>
-
-        </form>
-
-    </div>
-
-</header>
-
-<main class="container">
-
-    <h1>Editar usuário</h1>
-
-    <?php if ($mensagem !== ''): ?>
-
-        <div class="success">
-            <?= e($mensagem) ?>
+            <div>
+                <strong>Negociações</strong>
+                <span>Sistema de gestão</span>
+            </div>
         </div>
 
-    <?php elseif ($erro !== ''): ?>
+        <div class="sidebar-section-label">MENU PRINCIPAL</div>
 
-        <div class="error">
-            <?= e($erro) ?>
-        </div>
+        <nav class="sidebar-nav">
 
-    <?php endif; ?>
-
-
-    <section class="panel">
-
-        <h2>Dados do usuário</h2>
-
-        <form method="post">
-
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
-
-
-            <div class="form-group">
-
-                <label for="nome">
-                    Nome
-                </label>
-
-                <input
-                    type="text"
-                    id="nome"
-                    name="nome"
-                    maxlength="120"
-                    value="<?= e($nome) ?>"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label for="email">
-                    E-mail
-                </label>
-
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    maxlength="150"
-                    value="<?= e($email) ?>"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label for="perfil_id">
-                    Perfil
-                </label>
-
-                <select
-                    id="perfil_id"
-                    name="perfil_id"
-                    required
-                >
-
-                    <?php foreach ($perfis as $perfilOpcao): ?>
-
-                        <option
-                            value="<?= (int)$perfilOpcao['id'] ?>"
-                            <?= (string)$perfilId === (string)$perfilOpcao['id'] ? 'selected' : '' ?>
-                        >
-                            <?= e($perfilOpcao['nome']) ?>
-                        </option>
-
-                    <?php endforeach; ?>
-
-                </select>
-
-            </div>
-
-
-            <p>
-                <strong>Status:</strong>
-
-                <?php if ((int)$usuario['ativo'] === 1): ?>
-                    Ativo
-                <?php else: ?>
-                    Inativo
-                <?php endif; ?>
-            </p>
-
-
-            <p>
-                <strong>Senha:</strong>
-                A senha não é alterada nesta tela.
-            </p>
-
-
-            <button
-                type="submit"
-                class="button"
-            >
-                Salvar alterações
-            </button>
-
-            <a
-                href="usuarios.php"
-                class="button secondary"
-            >
-                Cancelar
+            <a href="index.php" class="sidebar-link">
+                <span class="nav-icon">⌂</span>
+                <span>Painel</span>
             </a>
 
-        </form>
+            <a href="novo_atendimento.php" class="sidebar-link">
+                <span class="nav-icon">＋</span>
+                <span>Novo atendimento</span>
+            </a>
 
-    </section>
+            <a href="atendimentos.php" class="sidebar-link">
+                <span class="nav-icon">▤</span>
+                <span>Atendimentos</span>
+            </a>
+            <a href="minha_conta.php" class="sidebar-link">
+    <span class="nav-icon">⚙</span>
+    <span>Minha conta</span>
+</a>
 
-</main>
+            <div class="sidebar-section-label">GESTÃO</div>
+
+            <a href="relatorio.php" class="sidebar-link">
+                <span class="nav-icon">▥</span>
+                <span>Relatórios</span>
+            </a>
+
+            <a href="usuarios.php" class="sidebar-link active">
+                <span class="nav-icon">♙</span>
+                <span>Usuários</span>
+            </a>
+
+            <a href="auditoria.php" class="sidebar-link">
+                <span class="nav-icon">◷</span>
+                <span>Auditoria</span>
+            </a>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <div class="sidebar-user">
+
+                <div class="user-avatar">
+                    <?= e(mb_strtoupper(mb_substr($usuarioAtual['nome'], 0, 1, 'UTF-8'), 'UTF-8')) ?>
+                </div>
+
+                <div class="user-info">
+                    <strong><?= e($usuarioAtual['nome']) ?></strong>
+                    <span><?= e($usuarioAtual['perfil']) ?></span>
+                </div>
+
+            </div>
+
+            <form method="POST" action="logout.php">
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= e(csrfToken()) ?>"
+                >
+
+                <button type="submit" class="logout-button">
+                    <span>↪</span>
+                    Sair do sistema
+                </button>
+
+            </form>
+
+        </div>
+
+    </aside>
+
+    <main class="dashboard-main">
+
+        <div class="dashboard-content">
+
+            <header class="user-edit-header">
+
+                <div>
+                    <h1>Editar usuário</h1>
+                    <p>
+                        Atualize as informações e as permissões do usuário.
+                    </p>
+                </div>
+
+                <a href="usuarios.php" class="button secondary">
+                    Voltar
+                </a>
+
+            </header>
+
+            <?php if ($mensagem !== ''): ?>
+
+                <div class="alert success">
+                    <?= e($mensagem) ?>
+                </div>
+
+            <?php elseif ($erro !== ''): ?>
+
+                <div class="alert error">
+                    <?= e($erro) ?>
+                </div>
+
+            <?php endif; ?>
+
+            <section class="user-edit-panel">
+
+                <div class="user-edit-panel-heading">
+
+                    <div>
+                        <h2>Dados do usuário</h2>
+                        <p>
+                            Confira os dados antes de salvar as alterações.
+                        </p>
+                    </div>
+
+                    <?php if ((int)$usuario['ativo'] === 1): ?>
+
+                        <span class="user-edit-status active">
+                            Ativo
+                        </span>
+
+                    <?php else: ?>
+
+                        <span class="user-edit-status inactive">
+                            Inativo
+                        </span>
+
+                    <?php endif; ?>
+
+                </div>
+
+                <form method="POST" class="user-edit-form">
+
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="<?= e(csrfToken()) ?>"
+                    >
+
+                    <div class="user-edit-field">
+                        <label for="nome">Nome completo</label>
+
+                        <input
+                            type="text"
+                            id="nome"
+                            name="nome"
+                            maxlength="120"
+                            value="<?= e($nome) ?>"
+                            placeholder="Digite o nome do usuário"
+                            required
+                        >
+                    </div>
+
+                    <div class="user-edit-field">
+                        <label for="email">E-mail</label>
+
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            maxlength="150"
+                            value="<?= e($email) ?>"
+                            placeholder="Digite o e-mail do usuário"
+                            required
+                        >
+                    </div>
+
+                    <div class="user-edit-field">
+                        <label for="perfil_id">Perfil de acesso</label>
+
+                        <select
+                            id="perfil_id"
+                            name="perfil_id"
+                            required
+                        >
+
+                            <?php foreach ($perfis as $perfilOpcao): ?>
+
+                                <option
+                                    value="<?= (int)$perfilOpcao['id'] ?>"
+                                    <?= (string)$perfilId === (string)$perfilOpcao['id'] ? 'selected' : '' ?>
+                                >
+                                    <?= e($perfilOpcao['nome']) ?>
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+
+                        <small>
+                            O perfil determina quais funcionalidades o usuário poderá acessar.
+                        </small>
+                    </div>
+
+                    <div class="user-edit-information">
+
+                        <div class="user-edit-information-item">
+                            <span class="user-edit-information-label">
+                                Status da conta
+                            </span>
+
+                            <strong>
+                                <?= (int)$usuario['ativo'] === 1 ? 'Ativo' : 'Inativo' ?>
+                            </strong>
+                        </div>
+
+                        <div class="user-edit-information-item">
+                            <span class="user-edit-information-label">
+                                Senha
+                            </span>
+
+                            <strong>
+                                Não alterada nesta tela
+                            </strong>
+
+                            <small>
+                                Para redefinir a senha, utilize a opção correspondente na gestão de usuários.
+                            </small>
+                        </div>
+
+                    </div>
+
+                    <div class="user-edit-actions">
+
+                        <button type="submit" class="button">
+                            Salvar alterações
+                        </button>
+
+                        <a
+                            href="usuarios.php"
+                            class="button secondary"
+                        >
+                            Cancelar
+                        </a>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
 
 </body>
-
 </html>

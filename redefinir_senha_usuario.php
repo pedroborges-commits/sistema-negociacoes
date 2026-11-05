@@ -87,147 +87,249 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 ?>
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Redefinir senha</title>
-
-    <link
-        rel="stylesheet"
-        href="assets/style.css"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir senha | Sistema de Negociações</title>
+    <link rel="stylesheet" href="/sistema-negociacoes-redesign/assets/style.css?v=2">
 </head>
 
 <body>
 
-<header class="topbar">
+<div class="dashboard-layout">
 
-    <div>
-        <strong>Sistema de Negociações</strong>
-    </div>
+    <aside class="sidebar">
 
-    <div>
+        <div class="sidebar-brand">
+            <div class="brand-symbol">N</div>
+            <div>
+                <strong>Negociações</strong>
+                <span>Sistema de gestão</span>
+            </div>
+        </div>
 
-        <span>
-            <?= e($usuarioAtual['nome']) ?>
-            (<?= e($usuarioAtual['perfil']) ?>)
-        </span>
+        <div class="sidebar-section-label">MENU PRINCIPAL</div>
 
-        <a href="index.php">Início</a>
+        <nav class="sidebar-nav">
 
-        <form
-            method="post"
-            action="logout.php"
-            style="display:inline;"
-        >
+            <a href="index.php" class="sidebar-link">
+                <span class="nav-icon">⌂</span>
+                <span>Painel</span>
+            </a>
 
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
+            <a href="novo_atendimento.php" class="sidebar-link">
+                <span class="nav-icon">＋</span>
+                <span>Novo atendimento</span>
+            </a>
 
-            <button type="submit">
-                Sair
-            </button>
+            <a href="atendimentos.php" class="sidebar-link">
+                <span class="nav-icon">▤</span>
+                <span>Atendimentos</span>
+            </a>
+            <a href="minha_conta.php" class="sidebar-link">
+    <span class="nav-icon">⚙</span>
+    <span>Minha conta</span>
+</a>
 
-        </form>
+            <?php if (in_array($usuarioAtual['perfil'], ['ADMIN', 'SUPERVISOR'], true)): ?>
 
-    </div>
+                <div class="sidebar-section-label">GESTÃO</div>
 
-</header>
+                <a href="relatorio.php" class="sidebar-link">
+                    <span class="nav-icon">▥</span>
+                    <span>Relatórios</span>
+                </a>
 
-<main class="container">
+            <?php endif; ?>
 
-    <h1>Redefinir senha</h1>
+            <?php if ($usuarioAtual['perfil'] === 'ADMIN'): ?>
 
-    <section class="panel">
+                <a href="usuarios.php" class="sidebar-link active">
+                    <span class="nav-icon">♙</span>
+                    <span>Usuários</span>
+                </a>
 
-        <h2>
-            <?= e($usuario['nome']) ?>
-        </h2>
+                <a href="auditoria.php" class="sidebar-link">
+                    <span class="nav-icon">◷</span>
+                    <span>Auditoria</span>
+                </a>
 
-        <p>
-            E-mail:
-            <strong><?= e($usuario['email']) ?></strong>
-        </p>
+            <?php endif; ?>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    <?= e(mb_strtoupper(mb_substr($usuarioAtual['nome'], 0, 1, 'UTF-8'), 'UTF-8')) ?>
+                </div>
+
+                <div class="user-info">
+                    <strong><?= e($usuarioAtual['nome']) ?></strong>
+                    <span><?= e($usuarioAtual['perfil']) ?></span>
+                </div>
+            </div>
+
+            <form method="POST" action="logout.php">
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= e(csrfToken()) ?>"
+                >
+
+                <button type="submit" class="logout-button">
+                    <span>↪</span>
+                    Sair do sistema
+                </button>
+            </form>
+
+        </div>
+
+    </aside>
+
+    <main class="dashboard-main reset-password-main">
+
+        <div class="reset-password-header">
+
+            <div>
+                <h1>Redefinir senha</h1>
+                <p>Cadastre uma nova senha para o usuário selecionado.</p>
+            </div>
+
+            <a href="usuarios.php" class="reset-password-back">
+                ← Voltar para usuários
+            </a>
+
+        </div>
 
         <?php if ($erro !== ''): ?>
 
-            <p>
-                <?= e($erro) ?>
-            </p>
+            <div class="reset-password-alert reset-password-alert-error">
+                <strong>Não foi possível redefinir a senha</strong>
+                <p><?= e($erro) ?></p>
+            </div>
 
         <?php endif; ?>
 
         <?php if ($sucesso !== ''): ?>
 
-            <p>
-                <?= e($sucesso) ?>
-            </p>
+            <div class="reset-password-alert reset-password-alert-success">
+                <strong><?= e($sucesso) ?></strong>
+            </div>
 
         <?php endif; ?>
 
-        <form method="POST">
+        <section class="reset-password-card">
 
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
+            <div class="reset-password-card-heading">
 
-            <div>
-                <label for="nova_senha">
-                    Nova senha
-                </label>
+                <div class="reset-password-icon">♙</div>
 
-                <input
-                    type="password"
-                    id="nova_senha"
-                    name="nova_senha"
-                    required
-                >
+                <div>
+                    <h2>Dados do usuário</h2>
+                    <p>Confira os dados da conta que terá a senha alterada.</p>
+                </div>
+
             </div>
 
-            <div>
-                <label for="confirmacao">
-                    Confirmar nova senha
-                </label>
+            <div class="reset-password-user-info">
 
-                <input
-                    type="password"
-                    id="confirmacao"
-                    name="confirmacao"
-                    required
-                >
+                <div class="reset-password-info-item">
+                    <span>Nome completo</span>
+                    <strong><?= e($usuario['nome']) ?></strong>
+                </div>
+
+                <div class="reset-password-info-item">
+                    <span>E-mail</span>
+                    <strong><?= e($usuario['email']) ?></strong>
+                </div>
+
             </div>
 
-            <button type="submit">
-                Redefinir senha
-            </button>
+            <div class="reset-password-divider"></div>
 
-        </form>
+            <div class="reset-password-card-heading">
 
-        <p>
-            <a href="usuarios.php">
-                Voltar para usuários
-            </a>
-        </p>
+                <div class="reset-password-icon">🔒</div>
 
-    </section>
+                <div>
+                    <h2>Nova senha</h2>
+                    <p>Informe e confirme a nova senha do usuário.</p>
+                </div>
 
-</main>
+            </div>
+
+            <form method="POST" class="reset-password-form">
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= e(csrfToken()) ?>"
+                >
+
+                <div class="reset-password-fields">
+
+                    <div class="reset-password-field">
+                        <label for="nova_senha">Nova senha</label>
+
+                        <input
+                            type="password"
+                            id="nova_senha"
+                            name="nova_senha"
+                            placeholder="Digite a nova senha"
+                            required
+                        >
+
+                        <small>
+                            Mínimo de 8 caracteres, contendo pelo menos uma letra e um número.
+                        </small>
+                    </div>
+
+                    <div class="reset-password-field">
+                        <label for="confirmacao">Confirmar nova senha</label>
+
+                        <input
+                            type="password"
+                            id="confirmacao"
+                            name="confirmacao"
+                            placeholder="Digite novamente a nova senha"
+                            required
+                        >
+                    </div>
+
+                </div>
+
+                <div class="reset-password-notice">
+                    <span>ⓘ</span>
+                    <p>
+                        A nova senha será aplicada imediatamente após a confirmação.
+                    </p>
+                </div>
+
+                <div class="reset-password-actions">
+
+                    <a href="usuarios.php" class="button secondary">
+                        Cancelar
+                    </a>
+
+                    <button type="submit" class="button">
+                        Redefinir senha
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+    </main>
+
+</div>
 
 </body>
-
 </html>

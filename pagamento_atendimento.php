@@ -94,16 +94,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
     */
 
     if (!validarData($dataPagamento)) {
-
-        $erro = 'Informe uma data de pagamento válida.';
-
-    } elseif (
-        !is_numeric($valorTexto) ||
-        !is_finite($valorRecebido) ||
-        $valorRecebido <= 0
-    ) {
-
-        $erro = 'O valor recebido deve ser maior que zero.';
+    $erro = 'Informe uma data de pagamento válida.';
+} elseif ($dataPagamento > date('Y-m-d')) {
+    $erro = 'A data do pagamento não pode ser posterior à data atual.';
+} elseif ($valorRecebido <= 0) {
+    $erro = 'Informe um valor recebido válido.';
 
     } elseif (
         !isset($_FILES['comprovante']) ||
@@ -342,266 +337,330 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $erro === '') {
 
 ?>
 
-<!doctype html>
 
+<!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
-
-    <meta charset="utf-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1"
-    >
-
-    <title>Registrar pagamento</title>
-
-    <link
-        rel="stylesheet"
-        href="assets/style.css"
-    >
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar pagamento | Sistema de Negociações</title>
+    <link rel="stylesheet" href="/sistema-negociacoes-redesign/assets/style.css?v=2">
 </head>
 
 <body>
 
-<header class="topbar">
+<div class="dashboard-layout">
 
-    <strong>Sistema de Negociações</strong>
+    <aside class="sidebar">
 
-    <span>
-
-        <?= e($u['nome']) ?>
-
-        ·
-
-        <?= e($u['perfil']) ?>
-
-        ·
-
-        <form
-            method="POST"
-            action="logout.php"
-            style="display:inline;"
-        >
-
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
-
-            <button type="submit">
-                Sair
-            </button>
-
-        </form>
-
-    </span>
-
-</header>
-
-<main class="container">
-
-    <div class="head">
-
-        <div>
-
-            <h1>Registrar pagamento</h1>
-
-            <p>
-                Registre o pagamento realizado para este atendimento.
-            </p>
-
+        <div class="sidebar-brand">
+            <div class="brand-symbol">N</div>
+            <div>
+                <strong>Negociações</strong>
+                <span>Sistema de gestão</span>
+            </div>
         </div>
 
-        <a
-            class="button secondary"
-            href="atendimentos.php"
-        >
-            Voltar
-        </a>
+        <div class="sidebar-section-label">MENU PRINCIPAL</div>
 
-    </div>
+        <nav class="sidebar-nav">
 
-    <?php if ($erro): ?>
+            <a href="index.php" class="sidebar-link">
+                <span class="nav-icon">⌂</span>
+                <span>Painel</span>
+            </a>
 
-        <div class="panel">
+            <a href="novo_atendimento.php" class="sidebar-link">
+                <span class="nav-icon">＋</span>
+                <span>Novo atendimento</span>
+            </a>
 
-            <p>
-                <strong>Erro:</strong>
-                <?= e($erro) ?>
-            </p>
+            <a href="atendimentos.php" class="sidebar-link active">
+                <span class="nav-icon">▤</span>
+                <span>Atendimentos</span>
+            </a>
 
-        </div>
+            <?php if (in_array($u['perfil'], ['ADMIN', 'SUPERVISOR'], true)): ?>
 
-    <?php endif; ?>
+                <div class="sidebar-section-label">GESTÃO</div>
 
-    <?php if ($ok): ?>
+                <a href="relatorio.php" class="sidebar-link">
+                    <span class="nav-icon">▥</span>
+                    <span>Relatórios</span>
+                </a>
+                <a href="minha_conta.php" class="sidebar-link">
+    <span class="nav-icon">⚙</span>
+    <span>Minha conta</span>
+</a>
 
-        <div class="panel">
+            <?php endif; ?>
 
-            <p>
-                <strong><?= e($ok) ?></strong>
-            </p>
+            <?php if ($u['perfil'] === 'ADMIN'): ?>
 
-        </div>
+                <a href="usuarios.php" class="sidebar-link">
+                    <span class="nav-icon">♙</span>
+                    <span>Usuários</span>
+                </a>
 
-    <?php endif; ?>
+                <a href="auditoria.php" class="sidebar-link">
+                    <span class="nav-icon">◷</span>
+                    <span>Auditoria</span>
+                </a>
 
-    <section class="panel">
+            <?php endif; ?>
 
-        <h2>Dados do atendimento</h2>
+        </nav>
 
-        <p>
-            <strong>Data do atendimento:</strong>
-            <?= e($atendimento['data_atendimento']) ?>
-        </p>
+        <div class="sidebar-bottom">
 
-        <p>
-            <strong>Inscrição:</strong>
-            <?= e($atendimento['inscricao']) ?>
-        </p>
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    <?= e(mb_strtoupper(mb_substr($u['nome'], 0, 1, 'UTF-8'), 'UTF-8')) ?>
+                </div>
 
-        <p>
-            <strong>Parcelas em atraso:</strong>
-            <?= e((string)$atendimento['parcelas_em_atraso']) ?>
-        </p>
+                <div class="user-info">
+                    <strong><?= e($u['nome']) ?></strong>
+                    <span><?= e($u['perfil']) ?></span>
+                </div>
+            </div>
 
-        <p>
-            <strong>Valor negociado:</strong>
-            <?= dinheiro($atendimento['valor_negociado']) ?>
-        </p>
-
-        <p>
-            <strong>Operadora:</strong>
-            <?= e($atendimento['usuario_nome']) ?>
-        </p>
-
-    </section>
-
-    <?php if (
-        $atendimento['valor_recebido'] === null &&
-        $atendimento['data_pagamento'] === null
-    ): ?>
-
-        <section class="panel">
-
-            <h2>Dados do pagamento</h2>
-
-            <form
-                method="post"
-                enctype="multipart/form-data"
-            >
-
-                <input
-                    type="hidden"
-                    name="id"
-                    value="<?= e((string)$id) ?>"
-                >
-
+            <form method="POST" action="logout.php">
                 <input
                     type="hidden"
                     name="csrf_token"
                     value="<?= e(csrfToken()) ?>"
                 >
 
-                <label>
+                <button type="submit" class="logout-button">
+                    <span>↪</span>
+                    Sair do sistema
+                </button>
+            </form>
 
-                    Data do pagamento
+        </div>
 
-                    <input
-                        type="date"
-                        name="data_pagamento"
-                        value="<?= e($_POST['data_pagamento'] ?? date('Y-m-d')) ?>"
-                        required
-                    >
+    </aside>
 
-                </label>
+    <main class="dashboard-main payment-main">
 
-                <label>
+        <div class="payment-header">
 
-                    Valor recebido
+            <div>
+                <h1>Registrar pagamento</h1>
+                <p>Registre o pagamento realizado para este atendimento.</p>
+            </div>
 
-                    <input
-                        type="number"
-                        name="valor_recebido"
-                        value="<?= e($_POST['valor_recebido'] ?? '') ?>"
-                        min="0.01"
-                        step="0.01"
-                        required
-                    >
+            <a href="atendimentos.php" class="payment-back">
+                ← Voltar para atendimentos
+            </a>
 
-                </label>
+        </div>
 
-                <label>
+        <?php if ($erro): ?>
 
-                    Comprovante de pagamento (obrigatório)
+            <div class="payment-alert payment-alert-error">
+                <strong>Não foi possível concluir a operação</strong>
+                <p><?= e($erro) ?></p>
+            </div>
 
-                    <input
-                        type="file"
-                        name="comprovante"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        required
-                    >
+        <?php endif; ?>
 
-                    <small>
-                        Formatos permitidos: PDF, JPG e PNG.
-                        Tamanho máximo: 5 MB.
-                    </small>
+        <?php if ($ok): ?>
 
-                </label>
+            <div class="payment-alert payment-alert-success">
+                <strong><?= e($ok) ?></strong>
+            </div>
+
+        <?php endif; ?>
+
+        <section class="payment-card">
+
+            <div class="payment-card-heading">
+                <div class="payment-card-icon">▤</div>
 
                 <div>
+                    <h2>Dados do atendimento</h2>
+                    <p>Confira as informações antes de registrar o pagamento.</p>
+                </div>
+            </div>
 
-                    <button
-                        type="submit"
-                        class="button"
-                    >
-                        Registrar pagamento
-                    </button>
+            <div class="payment-info-grid">
 
-                    <a
-                        href="atendimentos.php"
-                        class="button secondary"
+                <div class="payment-info-item">
+                    <span>Data do atendimento</span>
+                    <strong><?= e($atendimento['data_atendimento']) ?></strong>
+                </div>
+
+                <div class="payment-info-item">
+                    <span>Inscrição</span>
+                    <strong><?= e($atendimento['inscricao']) ?></strong>
+                </div>
+
+                <div class="payment-info-item">
+                    <span>Parcelas em atraso</span>
+                    <strong><?= e((string)$atendimento['parcelas_em_atraso']) ?></strong>
+                </div>
+
+                <div class="payment-info-item">
+                    <span>Valor negociado</span>
+                    <strong><?= dinheiro($atendimento['valor_negociado']) ?></strong>
+                </div>
+
+                <div class="payment-info-item">
+                    <span>Operadora responsável</span>
+                    <strong><?= e($atendimento['usuario_nome']) ?></strong>
+                </div>
+
+            </div>
+
+        </section>
+
+        <?php if (
+            $atendimento['valor_recebido'] === null &&
+            $atendimento['data_pagamento'] === null
+        ): ?>
+
+            <section class="payment-card">
+
+                <div class="payment-card-heading">
+                    <div class="payment-card-icon">R$</div>
+
+                    <div>
+                        <h2>Dados do pagamento</h2>
+                        <p>Informe os dados e anexe o comprovante obrigatório.</p>
+                    </div>
+                </div>
+
+                <form
+                    method="post"
+                    enctype="multipart/form-data"
+                    class="payment-form"
+                >
+
+                    <input
+                        type="hidden"
+                        name="id"
+                        value="<?= e((string)$id) ?>"
                     >
-                        Cancelar
-                    </a>
+
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="<?= e(csrfToken()) ?>"
+                    >
+
+                    <div class="payment-form-grid">
+
+                        <div class="payment-field">
+                            <label for="data_pagamento">Data do pagamento</label>
+
+                            <input
+                                type="date"
+                                type="date"
+                                name="data_pagamento"
+                                value="<?= e($_POST['data_pagamento'] ?? date('Y-m-d')) ?>"
+                                max="<?= date('Y-m-d') ?>"
+                                required
+                            >
+                        </div>
+
+                        <div class="payment-field">
+                            <label for="valor_recebido">Valor recebido</label>
+
+                            <input
+                                type="number"
+                                id="valor_recebido"
+                                name="valor_recebido"
+                                value="<?= e($_POST['valor_recebido'] ?? '') ?>"
+                                min="0.01"
+                                step="0.01"
+                                placeholder="0,00"
+                                required
+                            >
+                        </div>
+
+                        <div class="payment-field payment-field-full">
+                            <label for="comprovante">Comprovante de pagamento</label>
+
+                            <input
+                                type="file"
+                                id="comprovante"
+                                name="comprovante"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                required
+                            >
+
+                            <small>
+                                Formatos permitidos: PDF, JPG e PNG.
+                                Tamanho máximo: 5 MB.
+                            </small>
+                        </div>
+
+                    </div>
+
+                    <div class="payment-notice">
+                        <span>ⓘ</span>
+                        <p>
+                            O comprovante é obrigatório para concluir o registro do pagamento.
+                        </p>
+                    </div>
+
+                    <div class="payment-actions">
+
+                        <a href="atendimentos.php" class="button secondary">
+                            Cancelar
+                        </a>
+
+                        <button type="submit" class="button">
+                            Registrar pagamento
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        <?php else: ?>
+
+            <section class="payment-card">
+
+                <div class="payment-card-heading">
+                    <div class="payment-card-icon">✓</div>
+
+                    <div>
+                        <h2>Pagamento registrado</h2>
+                        <p>Este atendimento já possui um pagamento registrado.</p>
+                    </div>
+                </div>
+
+                <div class="payment-info-grid">
+
+                    <div class="payment-info-item">
+                        <span>Data do pagamento</span>
+                        <strong><?= e($atendimento['data_pagamento']) ?></strong>
+                    </div>
+
+                    <div class="payment-info-item">
+                        <span>Valor recebido</span>
+                        <strong><?= dinheiro($atendimento['valor_recebido']) ?></strong>
+                    </div>
+
+                    <div class="payment-info-item">
+                        <span>Comprovante</span>
+                        <strong>Anexado ao atendimento</strong>
+                    </div>
 
                 </div>
 
-            </form>
+            </section>
 
-        </section>
+        <?php endif; ?>
 
-    <?php else: ?>
+    </main>
 
-        <section class="panel">
-
-            <h2>Pagamento registrado</h2>
-
-            <p>
-                <strong>Data do pagamento:</strong>
-                <?= e($atendimento['data_pagamento']) ?>
-            </p>
-
-            <p>
-                <strong>Valor recebido:</strong>
-                <?= dinheiro($atendimento['valor_recebido']) ?>
-            </p>
-
-            <p>
-                <strong>Comprovante:</strong>
-                Anexado ao atendimento.
-            </p>
-
-        </section>
-
-    <?php endif; ?>
-
-</main>
+</div>
 
 </body>
-
 </html>

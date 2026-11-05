@@ -1,4 +1,3 @@
-
 <?php
 
 require_once __DIR__ . '/config/bootstrap.php';
@@ -185,159 +184,283 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <title>Novo atendimento</title>
 
-    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="/sistema-negociacoes-redesign/assets/style.css?v=2">
 </head>
 
-<body>
+<body class="dashboard-page">
 
-<header class="topbar">
+<div class="dashboard-layout">
 
-    <strong>Sistema de Negociações</strong>
+    <!-- MENU LATERAL -->
+    <aside class="sidebar">
 
-    <span>
+        <div class="sidebar-brand">
+            <div class="brand-symbol">N</div>
 
-        <?= e($u['nome']) ?> ·
+            <div>
+                <strong>Negociações</strong>
+                <span>Sistema de gestão</span>
+            </div>
+        </div>
 
-        <form method="POST" action="logout.php" style="display:inline;">
+        <div class="sidebar-section-label">MENU PRINCIPAL</div>
 
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrfToken()) ?>"
-            >
+        <nav class="sidebar-nav">
 
-            <button type="submit">
-                Sair
-            </button>
+            <a href="index.php" class="sidebar-link">
+                <span class="nav-icon">⌂</span>
+                <span>Painel</span>
+            </a>
 
-        </form>
+            <a href="novo_atendimento.php" class="sidebar-link active">
+                <span class="nav-icon">＋</span>
+                <span>Novo atendimento</span>
+            </a>
 
-    </span>
+            <a href="atendimentos.php" class="sidebar-link">
+                <span class="nav-icon">▤</span>
+                <span>Atendimentos</span>
+            </a>
+            <a href="minha_conta.php" class="sidebar-link">
+    <span class="nav-icon">⚙</span>
+    <span>Minha conta</span>
+</a>
 
-</header>
+            <?php if (in_array($u['perfil'], ['ADMIN', 'SUPERVISOR'], true)): ?>
 
-<main class="container narrow">
+                <div class="sidebar-section-label">GESTÃO</div>
 
-    <div class="head">
+                <a href="relatorio.php" class="sidebar-link">
+                    <span class="nav-icon">▥</span>
+                    <span>Relatórios</span>
+                </a>
 
-        <div>
+            <?php endif; ?>
 
-            <h1>Novo atendimento</h1>
+            <?php if ($u['perfil'] === 'ADMIN'): ?>
 
-            <p>
-                Registre o atendimento realizado com o associado.
-            </p>
+                <a href="usuarios.php" class="sidebar-link">
+                    <span class="nav-icon">♙</span>
+                    <span>Usuários</span>
+                </a>
+
+                <a href="auditoria.php" class="sidebar-link">
+                    <span class="nav-icon">◷</span>
+                    <span>Auditoria</span>
+                </a>
+
+            <?php endif; ?>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <div class="sidebar-user">
+
+                <div class="user-avatar">
+                    <?= e(mb_strtoupper(mb_substr($u['nome'], 0, 1, 'UTF-8'), 'UTF-8')) ?>
+                </div>
+
+                <div class="user-info">
+                    <strong><?= e($u['nome']) ?></strong>
+                    <span><?= e($u['perfil']) ?></span>
+                </div>
+
+            </div>
+
+            <form method="POST" action="logout.php">
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= e(csrfToken()) ?>"
+                >
+
+                <button type="submit" class="logout-button">
+                    <span>↪</span>
+                    Sair do sistema
+                </button>
+
+            </form>
 
         </div>
 
-        <a href="index.php">
-            ← Voltar
-        </a>
+    </aside>
 
-    </div>
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="dashboard-main">
 
-    <?php if ($erro): ?>
+        <div class="dashboard-content">
 
-        <div class="alert error">
-            <?= e($erro) ?>
+            <!-- CABEÇALHO -->
+            <section class="dashboard-welcome attendance-page-welcome">
+
+                <div>
+                    <span class="welcome-label">ATENDIMENTOS</span>
+
+                    <h1 class="welcome-text">Novo atendimento</h1>
+
+                    <p>
+                        Registre o atendimento realizado com o associado.
+                    </p>
+                </div>
+
+                <a href="atendimentos.php" class="new-attendance-back">
+                    ← Voltar para atendimentos
+                </a>
+
+            </section>
+
+            <!-- MENSAGENS -->
+            <?php if ($erro): ?>
+
+                <div class="alert error">
+                    <?= e($erro) ?>
+                </div>
+
+            <?php elseif ($ok): ?>
+
+                <div class="alert success">
+                    <?= e($ok) ?>
+                </div>
+
+            <?php endif; ?>
+
+            <!-- FORMULÁRIO -->
+            <section class="panel new-attendance-panel">
+
+                <div class="new-attendance-heading">
+
+                    <div>
+                        <h2>Dados do atendimento</h2>
+
+                        <p>
+                            Preencha os campos abaixo para registrar o atendimento.
+                        </p>
+                    </div>
+
+                    <span class="new-attendance-required">
+                        * Campos obrigatórios
+                    </span>
+
+                </div>
+
+                <form class="new-attendance-form" method="post">
+
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="<?= e(csrfToken()) ?>"
+                    >
+
+                    <div class="new-attendance-field">
+
+                        <label for="data_atendimento">
+                            Data do atendimento <span>*</span>
+                        </label>
+
+                        <input
+                            type="date"
+                            id="data_atendimento"
+                            name="data_atendimento"
+                            value="<?= e($data) ?>"
+                            required
+                        >
+
+                    </div>
+
+                    <div class="new-attendance-field">
+
+                        <label for="inscricao">
+                            Inscrição <span>*</span>
+                        </label>
+
+                        <input
+                            type="text"
+                            id="inscricao"
+                            name="inscricao"
+                            value="<?= e($inscricao) ?>"
+                            maxlength="50"
+                            placeholder="Informe o número da inscrição"
+                            required
+                        >
+
+                    </div>
+
+                    <div class="new-attendance-field">
+
+                        <label for="parcelas_em_atraso">
+                            Parcelas em atraso <span>*</span>
+                        </label>
+
+                        <input
+                            type="number"
+                            id="parcelas_em_atraso"
+                            name="parcelas_em_atraso"
+                            value="<?= e((string)$parcelas) ?>"
+                            min="1"
+                            step="1"
+                            placeholder="Ex.: 3"
+                            required
+                        >
+
+                    </div>
+
+                    <div class="new-attendance-field">
+
+                        <label for="valor_negociado">
+                            Valor negociado <span>*</span>
+                        </label>
+
+                        <input
+                            type="number"
+                            id="valor_negociado"
+                            name="valor_negociado"
+                            value="<?= e((string)$valorNegociado) ?>"
+                            min="0.01"
+                            step="0.01"
+                            placeholder="Ex.: 150.00"
+                            required
+                        >
+
+                    </div>
+
+                    <div class="new-attendance-field full">
+
+                        <label for="observacoes">
+                            Observações
+                        </label>
+
+                        <textarea
+                            id="observacoes"
+                            name="observacoes"
+                            rows="5"
+                            placeholder="Adicione informações relevantes sobre o atendimento..."
+                        ><?= e($observacoes) ?></textarea>
+
+                    </div>
+
+                    <div class="new-attendance-actions">
+
+                        <a href="atendimentos.php" class="new-attendance-cancel">
+                            Cancelar
+                        </a>
+
+                        <button type="submit" class="new-attendance-submit">
+                            Registrar atendimento
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
         </div>
 
-    <?php elseif ($ok): ?>
+    </main>
 
-        <div class="alert success">
-            <?= e($ok) ?>
-        </div>
-
-    <?php endif; ?>
-
-    <form class="panel form" method="post">
-
-        <input
-            type="hidden"
-            name="csrf_token"
-            value="<?= e(csrfToken()) ?>"
-        >
-
-        <label>
-
-            Data do atendimento
-
-            <input
-                type="date"
-                name="data_atendimento"
-                value="<?= e($data) ?>"
-                required
-            >
-
-        </label>
-
-        <label>
-
-            Inscrição
-
-            <input
-                type="text"
-                name="inscricao"
-                value="<?= e($inscricao) ?>"
-                maxlength="50"
-                required
-            >
-
-        </label>
-
-        <label>
-
-            Parcelas em atraso
-
-            <input
-                type="number"
-                name="parcelas_em_atraso"
-                value="<?= e((string)$parcelas) ?>"
-                min="1"
-                step="1"
-                required
-            >
-
-        </label>
-
-        <label>
-
-            Valor negociado
-
-            <input
-                type="number"
-                name="valor_negociado"
-                value="<?= e((string)$valorNegociado) ?>"
-                min="0.01"
-                step="0.01"
-                required
-            >
-
-        </label>
-
-        <label class="wide">
-
-            Observações
-
-            <textarea
-                name="observacoes"
-                rows="4"
-            ><?= e($observacoes) ?></textarea>
-
-        </label>
-
-        <div class="wide">
-
-            <button class="button" type="submit">
-                Registrar atendimento
-            </button>
-
-        </div>
-
-    </form>
-
-</main>
+</div>
 
 </body>
-
 </html>
