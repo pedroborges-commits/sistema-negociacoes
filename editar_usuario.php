@@ -283,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<link rel="icon" type="image/x-icon" href="/sistema-negociacoes/favicon.ico?v=2">
     <title>Editar usuário | Sistema de Negociações</title>
 
     <link rel="stylesheet" href="assets/style.css?v=3">

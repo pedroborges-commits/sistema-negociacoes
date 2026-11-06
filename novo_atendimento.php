@@ -181,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-
+<link rel="icon" type="image/x-icon" href="/sistema-negociacoes/favicon.ico?v=2">
     <title>Novo atendimento</title>
 
     <link rel="stylesheet" href="/sistema-negociacoes-redesign/assets/style.css?v=2">

@@ -270,7 +270,7 @@ $tituloIndicador = [
         name="viewport"
         content="width=device-width, initial-scale=1"
     >
-
+<link rel="icon" type="image/x-icon" href="/sistema-negociacoes/favicon.ico?v=2">
     <title>Relatório por período</title>
 
     <link
